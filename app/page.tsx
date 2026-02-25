@@ -53,6 +53,7 @@ export default function Home() {
       const parsed = parseManifest(json, sourceKey);
       setError(null);
       setRawManifest(json);
+      clearStoredData(sourceKey);
       applyManifest(parsed);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Manifest を読み込めませんでした。');
