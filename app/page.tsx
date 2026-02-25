@@ -5,13 +5,14 @@ import { parseManifest } from '@/lib/iiif';
 import { AnnotationData, ManifestState } from '@/lib/types';
 import ImageAnnotator from '@/components/ImageAnnotator';
 import { clearStoredData, loadStoredData, saveStoredData } from '@/lib/storage';
-import { buildAnnotationPage, downloadJson, downloadZip } from '@/lib/export';
+import { buildManifestWithAnnotations, downloadJson } from '@/lib/export';
 
 const preview = (text: string) => (text.length > 24 ? `${text.slice(0, 24)}...` : text || '（未入力）');
 
 export default function Home() {
   const [manifestUrl, setManifestUrl] = useState('');
   const [manifest, setManifest] = useState<ManifestState | null>(null);
+  const [rawManifest, setRawManifest] = useState<unknown>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [annotationsByCanvas, setAnnotationsByCanvas] = useState<Record<string, AnnotationData[]>>({});
@@ -47,10 +48,11 @@ export default function Home() {
     }
   };
 
-  const loadManifestFromObject = (json: any, sourceKey: string) => {
+  const loadManifestFromObject = (json: unknown, sourceKey: string) => {
     try {
       const parsed = parseManifest(json, sourceKey);
       setError(null);
+      setRawManifest(json);
       applyManifest(parsed);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Manifest を読み込めませんでした。');
@@ -130,20 +132,10 @@ export default function Home() {
     clearStoredData(manifest.sourceKey);
   };
 
-  const exportCurrent = () => {
-    if (!manifest || !currentCanvas) return;
-    const page = buildAnnotationPage(currentCanvas, annotationsByCanvas[currentCanvas.id] || []);
-    downloadJson(`annotation-page-${currentCanvasIndex + 1}.json`, page);
-  };
-
-  const exportAll = async () => {
-    if (!manifest) return;
-    await downloadZip(
-      manifest.canvases.map((canvas, index) => ({
-        filename: `annotation-page-${index + 1}.json`,
-        payload: buildAnnotationPage(canvas, annotationsByCanvas[canvas.id] || [])
-      }))
-    );
+  const exportAll = () => {
+    if (!manifest || !rawManifest) return;
+    const result = buildManifestWithAnnotations(rawManifest, annotationsByCanvas);
+    downloadJson('manifest-annotated.json', result);
   };
 
   const onDrop = async (event: React.DragEvent<HTMLDivElement>) => {
@@ -173,8 +165,7 @@ export default function Home() {
           </label>
           <button className="rounded border px-3 py-2" onClick={onClearStored} disabled={!manifest}>保存データをクリア</button>
           <button className="rounded border px-3 py-2" onClick={() => setDrawMode((v) => !v)} disabled={!manifest}>{drawMode ? '閲覧モード' : '描画モード'}</button>
-          <button className="rounded border px-3 py-2" onClick={exportCurrent} disabled={!manifest}>現在Canvasを書き出し</button>
-          <button className="rounded border px-3 py-2" onClick={exportAll} disabled={!manifest}>全CanvasをZIPで書き出し</button>
+          <button className="rounded border px-3 py-2" onClick={exportAll} disabled={!manifest}>Manifestを書き出し</button>
         </div>
         {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
       </div>
