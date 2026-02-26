@@ -16,6 +16,9 @@ type Props = {
 type DragMode = 'draw' | 'move' | 'resize-nw' | 'resize-ne' | 'resize-sw' | 'resize-se';
 
 const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n));
+const MIN_ZOOM = 0.2;
+const MAX_ZOOM = 2;
+const ZOOM_STEP = 0.1;
 
 export default function ImageAnnotator({ canvas, annotations, selectedId, drawMode, onSelect, onCreate, onUpdate }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -51,8 +54,7 @@ export default function ImageAnnotator({ canvas, annotations, selectedId, drawMo
 
   const onWheel: React.WheelEventHandler<HTMLDivElement> = (event) => {
     event.preventDefault();
-    const next = clamp(zoom + (event.deltaY < 0 ? 0.1 : -0.1), 0.25, 6);
-    setZoom(next);
+    setZoom((prev) => clamp(prev + (event.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP), MIN_ZOOM, MAX_ZOOM));
   };
 
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -177,6 +179,16 @@ export default function ImageAnnotator({ canvas, annotations, selectedId, drawMo
     <div className="relative flex h-full w-full flex-col rounded border border-slate-300 bg-slate-50">
       <div className="flex items-center gap-2 border-b border-slate-200 bg-white p-2 text-sm">
         <button className="rounded border px-2 py-1" onClick={() => { setZoom(1); setOffset({ x: 0, y: 0 }); }}>ズームリセット</button>
+        <input
+          type="range"
+          min={MIN_ZOOM}
+          max={MAX_ZOOM}
+          step={ZOOM_STEP}
+          value={zoom}
+          onChange={(event) => setZoom(Number(event.target.value))}
+          aria-label="ズーム調整"
+          className="w-40"
+        />
         <span>Zoom: {Math.round(zoom * 100)}%</span>
       </div>
       <div
