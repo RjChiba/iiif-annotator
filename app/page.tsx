@@ -5,6 +5,7 @@ import { parseManifest } from '@/lib/iiif';
 import { AnnotationData, ManifestState, ProjectMeta } from '@/lib/types';
 import ImageAnnotator from '@/components/ImageAnnotator';
 import { buildAnnotationPage, buildManifestWithAnnotations, downloadJson } from '@/lib/export';
+import { parseNdlOcr, NdlOcrJson } from '@/lib/ndl-ocr';
 
 const preview = (text: string) => (text.length > 24 ? `${text.slice(0, 24)}...` : text || '（未入力）');
 
@@ -276,6 +277,21 @@ export default function Home() {
     return () => window.removeEventListener('keydown', listener);
   }, [project]);
 
+  const onImportNdlOcr = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !currentCanvas) return;
+    event.target.value = '';
+    try {
+      const json = JSON.parse(await file.text()) as NdlOcrJson;
+      const imported = parseNdlOcr(json, currentCanvas.id, defaultLanguage);
+      if (imported.length === 0) { setError('インポートできるアノテーションが見つかりませんでした。'); return; }
+      upsertAnnotation(currentCanvas.id, (current) => [...current, ...imported]);
+      setError(null);
+    } catch {
+      setError('NDL OCR JSON の解析に失敗しました。ファイルを確認してください。');
+    }
+  };
+
   const exportAll = () => {
     if (!project) return;
     const result = buildManifestWithAnnotations(project.rawManifest, annotationsByCanvas);
@@ -338,6 +354,10 @@ export default function Home() {
           <button className="rounded border px-3 py-2" onClick={() => setProject(null)}>← プロジェクト一覧</button>
           <button className="rounded border px-3 py-2" onClick={() => setDrawMode((v) => !v)}>{drawMode ? '閲覧モード' : '描画モード'}</button>
           <button className="rounded border px-3 py-2" onClick={exportAll}>Manifestを書き出し</button>
+          <label className="cursor-pointer rounded border px-3 py-2">
+            NDL OCR インポート
+            <input type="file" accept="application/json,.json" className="hidden" onChange={onImportNdlOcr} />
+          </label>
         </div>
         {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
       </div>
