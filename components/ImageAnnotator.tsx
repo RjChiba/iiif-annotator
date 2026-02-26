@@ -11,6 +11,7 @@ type Props = {
   onSelect: (id?: string) => void;
   onCreate: (anno: Omit<AnnotationData, 'id' | 'createdAt'>) => void;
   onUpdate: (id: string, updates: Partial<AnnotationData>) => void;
+  onBboxChangeEnd?: () => void;
 };
 
 type DragMode = 'draw' | 'move' | 'resize-nw' | 'resize-ne' | 'resize-sw' | 'resize-se';
@@ -20,7 +21,7 @@ const MIN_ZOOM = 0.2;
 const MAX_ZOOM = 2;
 const ZOOM_STEP = 0.1;
 
-export default function ImageAnnotator({ canvas, annotations, selectedId, drawMode, onSelect, onCreate, onUpdate }: Props) {
+export default function ImageAnnotator({ canvas, annotations, selectedId, drawMode, onSelect, onCreate, onUpdate, onBboxChangeEnd }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const [imageSize, setImageSize] = useState({ w: 1, h: 1 });
@@ -151,7 +152,14 @@ export default function ImageAnnotator({ canvas, annotations, selectedId, drawMo
         });
       }
       setPreview(null);
+    } else if (drag?.targetId) {
+      onBboxChangeEnd?.();
     }
+    setDrag(null);
+  };
+
+  const handlePointerCancel = () => {
+    if (drag?.targetId) onBboxChangeEnd?.();
     setDrag(null);
   };
 
@@ -199,6 +207,7 @@ export default function ImageAnnotator({ canvas, annotations, selectedId, drawMo
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerLeave={handlePointerUp}
+        onPointerCancel={handlePointerCancel}
       >
         {!imageUrl && <p className="p-4 text-sm text-red-600">Canvas の画像が見つかりません。</p>}
         {imageUrl && (

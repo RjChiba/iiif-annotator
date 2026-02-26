@@ -1,6 +1,6 @@
 'use client';
 
-import { ChangeEvent, useEffect, useMemo, useState } from 'react';
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { parseManifest } from '@/lib/iiif';
 import { AnnotationData, ManifestState, ProjectMeta } from '@/lib/types';
 import ImageAnnotator from '@/components/ImageAnnotator';
@@ -39,12 +39,16 @@ export default function Home() {
   const [defaultLanguage, setDefaultLanguage] = useState('ja');
   const [projectBusy, setProjectBusy] = useState(false);
   const [showCanvasList, setShowCanvasList] = useState(true);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isBboxDragging = useRef(false);
+  const currentAnnotationsRef = useRef<AnnotationData[]>([]);
 
   const currentCanvas = project?.manifest.canvases[currentCanvasIndex];
   const currentAnnotations = useMemo(() => {
     if (!currentCanvas) return [];
     return [...(annotationsByCanvas[currentCanvas.id] || [])].sort((a, b) => a.y - b.y);
   }, [annotationsByCanvas, currentCanvas]);
+  currentAnnotationsRef.current = currentAnnotations;
   const selected = currentAnnotations.find((a) => a.id === selectedId);
   const annotationCountByCanvas = useMemo(
     () =>
@@ -273,7 +277,14 @@ export default function Home() {
 
   const onUpdateAnnotation = (id: string, updates: Partial<AnnotationData>) => {
     if (!currentCanvas) return;
+    if ('x' in updates || 'y' in updates || 'w' in updates || 'h' in updates) isBboxDragging.current = true;
     upsertAnnotation(currentCanvas.id, (current) => current.map((item) => (item.id === id ? { ...item, ...updates } : item)));
+  };
+
+  const onBboxChangeEnd = () => {
+    isBboxDragging.current = false;
+    if (!project || !currentCanvas) return;
+    void saveCanvasAnnotations(currentCanvasIndex, currentCanvas.id, currentAnnotationsRef.current);
   };
 
   const onDeleteSelected = () => {
@@ -284,8 +295,14 @@ export default function Home() {
   };
 
   useEffect(() => {
-    if (!project || !currentCanvas) return;
-    void saveCanvasAnnotations(currentCanvasIndex, currentCanvas.id, currentAnnotations);
+    if (!project || !currentCanvas || isBboxDragging.current) return;
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      void saveCanvasAnnotations(currentCanvasIndex, currentCanvas.id, currentAnnotations);
+    }, 500);
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
   }, [project, currentCanvasIndex, currentCanvas, currentAnnotations]);
 
   // prevent pagenation when user editing annotations
@@ -572,6 +589,7 @@ export default function Home() {
                   onSelect={setSelectedId}
                   onCreate={onCreateAnnotation}
                   onUpdate={onUpdateAnnotation}
+                  onBboxChangeEnd={onBboxChangeEnd}
                 />
               </div>
             </div>
