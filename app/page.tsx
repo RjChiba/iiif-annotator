@@ -288,15 +288,16 @@ export default function Home() {
     void saveCanvasAnnotations(currentCanvasIndex, currentCanvas.id, currentAnnotations);
   }, [project, currentCanvasIndex, currentCanvas, currentAnnotations]);
 
-  useEffect(() => {
-    const listener = (event: globalThis.KeyboardEvent) => {
-      if (!project) return;
-      if (event.key === 'ArrowRight') setCurrentCanvasIndex((prev) => Math.min(prev + 1, project.manifest.canvases.length - 1));
-      if (event.key === 'ArrowLeft') setCurrentCanvasIndex((prev) => Math.max(prev - 1, 0));
-    };
-    window.addEventListener('keydown', listener);
-    return () => window.removeEventListener('keydown', listener);
-  }, [project]);
+  // prevent pagenation when user editing annotations
+  // useEffect(() => {
+  //   const listener = (event: globalThis.KeyboardEvent) => {
+  //     if (!project) return;
+  //     if (event.key === 'ArrowRight') setCurrentCanvasIndex((prev) => Math.min(prev + 1, project.manifest.canvases.length - 1));
+  //     if (event.key === 'ArrowLeft') setCurrentCanvasIndex((prev) => Math.max(prev - 1, 0));
+  //   };
+  //   window.addEventListener('keydown', listener);
+  //   return () => window.removeEventListener('keydown', listener);
+  // }, [project]);
 
   const onImportNdlOcr = async (event: ChangeEvent<HTMLInputElement>) => {
     if (!event.target.files?.length || !project) return;
