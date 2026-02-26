@@ -157,10 +157,10 @@ export default function ImageAnnotator({ canvas, annotations, selectedId, drawMo
 
   const renderHandles = (anno: AnnotationData) => {
     const handles = [
-      ['resize-nw', anno.x, anno.y],
-      ['resize-ne', anno.x + anno.w, anno.y],
-      ['resize-sw', anno.x, anno.y + anno.h],
-      ['resize-se', anno.x + anno.w, anno.y + anno.h]
+      ['resize-nw', -2, -2],
+      ['resize-ne', anno.w -2, -2],
+      ['resize-sw', -2, anno.h -2],
+      ['resize-se', anno.w -2, anno.h -2]
     ] as const;
     return handles.map(([mode, x, y]) => (
       <button
