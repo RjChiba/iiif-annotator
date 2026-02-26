@@ -1,0 +1,62 @@
+{
+  "name": "iiif-annotator",
+  "version": "0.3.0",
+  "description": "A local IIIF manifest annotator — run via npx to annotate IIIF images in your browser",
+  "keywords": [
+    "iiif",
+    "annotation",
+    "manifest",
+    "openseadragon"
+  ],
+  "author": "RjChiba",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/RjChiba/iiif-annotator.git"
+  },
+  "homepage": "https://github.com/RjChiba/iiif-annotator#readme",
+  "bugs": {
+    "url": "https://github.com/RjChiba/iiif-annotator/issues"
+  },
+  "bin": {
+    "iiif-annotator": "bin/cli.js"
+  },
+  "files": [
+    ".next/",
+    "public/",
+    "server.js",
+    "bin/",
+    "next.config.ts"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "prepublishOnly": "next build",
+    "init": "npm run build && npm run start"
+  },
+  "dependencies": {
+    "@hyzyla/pdfium": "^2.1.11",
+    "jszip": "^3.10.1",
+    "lucide-react": "^0.575.0",
+    "next": "^15.5.12",
+    "openseadragon": "^6.0.1",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "sharp": "^0.34.5",
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.2.1",
+    "@types/node": "^22.13.10",
+    "@types/openseadragon": "^5.0.2",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
+    "tailwindcss": "^4.0.9",
+    "typescript": "^5.9.3"
+  }
+}
