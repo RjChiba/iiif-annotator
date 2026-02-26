@@ -2,7 +2,12 @@
   "name": "iiif-annotator",
   "version": "0.3.0",
   "description": "A local IIIF manifest annotator — run via npx to annotate IIIF images in your browser",
-  "keywords": ["iiif", "annotation", "manifest", "openseadragon"],
+  "keywords": [
+    "iiif",
+    "annotation",
+    "manifest",
+    "openseadragon"
+  ],
   "bin": {
     "iiif-annotator": "bin/cli.js"
   },
@@ -42,6 +47,6 @@
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
     "tailwindcss": "^4.0.9",
-    "typescript": "^5.8.2"
+    "typescript": "^5.9.3"
   }
 }
