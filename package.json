@@ -8,6 +8,16 @@
     "manifest",
     "openseadragon"
   ],
+  "author": "RjChiba",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/RjChiba/iiif-annotator.git"
+  },
+  "homepage": "https://github.com/RjChiba/iiif-annotator#readme",
+  "bugs": {
+    "url": "https://github.com/RjChiba/iiif-annotator/issues"
+  },
   "bin": {
     "iiif-annotator": "bin/cli.js"
   },
