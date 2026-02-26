@@ -141,10 +141,6 @@ export default function Home() {
   const onUploadFiles = async (event: ChangeEvent<HTMLInputElement>) => {
     if (!event.target.files?.length) return;
     const files = [...event.target.files];
-    if (files.some((f) => f.type === 'application/pdf')) {
-      setError('現時点では PDF の自動変換は未対応です。画像ファイルのみアップロードしてください。');
-      return;
-    }
 
     setProjectBusy(true);
     setError(null);
@@ -162,17 +158,30 @@ export default function Home() {
       });
       const { projectId } = await projectCreate.json();
 
-      const sorted = [...files].sort((a, b) => a.name.localeCompare(b.name));
       const uploads: { url: string; filename: string; width: number; height: number }[] = [];
-      for (const file of sorted) {
-        const form = new FormData();
-        form.append('projectId', projectId);
-        form.append('file', file);
-        const upload = await fetch('/api/upload', { method: 'POST', body: form });
-        const uploaded = await upload.json();
-        const dims = await loadImageDimensions(uploaded.url);
-        uploads.push({ ...uploaded, ...dims });
+      for (const file of files) {
+        if (file.type === 'application/pdf') {
+          const form = new FormData();
+          form.append('projectId', projectId);
+          form.append('file', file);
+          const res = await fetch('/api/pdf-to-images', { method: 'POST', body: form });
+          if (!res.ok) throw new Error('PDF conversion failed');
+          const { files: pdfFiles } = await res.json() as { files: { url: string; filename: string }[] };
+          for (const pdfFile of pdfFiles) {
+            const dims = await loadImageDimensions(pdfFile.url);
+            uploads.push({ ...pdfFile, ...dims });
+          }
+        } else {
+          const form = new FormData();
+          form.append('projectId', projectId);
+          form.append('file', file);
+          const upload = await fetch('/api/upload', { method: 'POST', body: form });
+          const uploaded = await upload.json();
+          const dims = await loadImageDimensions(uploaded.url);
+          uploads.push({ ...uploaded, ...dims });
+        }
       }
+      uploads.sort((a, b) => a.filename.localeCompare(b.filename));
 
       const manifest = {
         '@context': 'http://iiif.io/api/presentation/3/context.json',
@@ -210,7 +219,8 @@ export default function Home() {
       });
       await refreshProjects();
       await loadProject(projectId);
-    } catch {
+    } catch(error) {
+      console.log(error)
       setError('ファイルアップロードに失敗しました。');
     } finally {
       setProjectBusy(false);
