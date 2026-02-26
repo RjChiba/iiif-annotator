@@ -21,7 +21,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "prepublishOnly": "next build"
+    "prepublishOnly": "next build",
+    "init": "npm run build && npm run start"
   },
   "dependencies": {
     "@hyzyla/pdfium": "^2.1.11",
