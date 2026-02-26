@@ -1,6 +1,5 @@
-import JSZip from 'jszip';
 import { v4 as uuidv4 } from 'uuid';
-import { AnnotationData, CanvasInfo } from './types';
+import { AnnotationData } from './types';
 
 export const buildManifestWithAnnotations = (
   rawManifest: unknown,
@@ -50,7 +49,7 @@ const context = 'http://iiif.io/api/presentation/3/context.json';
 const toTarget = (annotation: AnnotationData) =>
   `${annotation.canvasId}#xywh=${Math.round(annotation.x)},${Math.round(annotation.y)},${Math.round(annotation.w)},${Math.round(annotation.h)}`;
 
-export const buildAnnotationPage = (_canvas: CanvasInfo, annotations: AnnotationData[]) => ({
+export const buildAnnotationPage = (annotations: AnnotationData[]) => ({
   '@context': context,
   id: `urn:uuid:${uuidv4()}`,
   type: 'AnnotationPage',
@@ -62,7 +61,7 @@ export const buildAnnotationPage = (_canvas: CanvasInfo, annotations: Annotation
       type: 'TextualBody',
       value: a.text,
       format: 'text/plain',
-      language: a.language || undefined
+      ...(a.language ? { language: a.language } : {})
     },
     target: toTarget(a)
   }))
@@ -74,18 +73,6 @@ export const downloadJson = (filename: string, obj: unknown) => {
   const link = document.createElement('a');
   link.href = url;
   link.download = filename;
-  link.click();
-  URL.revokeObjectURL(url);
-};
-
-export const downloadZip = async (pages: { filename: string; payload: unknown }[]) => {
-  const zip = new JSZip();
-  pages.forEach((p) => zip.file(p.filename, JSON.stringify(p.payload, null, 2)));
-  const blob = await zip.generateAsync({ type: 'blob' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = 'annotation-pages.zip';
   link.click();
   URL.revokeObjectURL(url);
 };

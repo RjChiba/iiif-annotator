@@ -24,8 +24,16 @@ export type AnnotationData = {
 export type ManifestState = {
   id?: string;
   label: string;
-  sourceKey: string;
   canvases: CanvasInfo[];
+};
+
+export type ProjectMeta = {
+  id: string;
+  name: string;
+  sourceType: 'manifest-url' | 'manifest-file' | 'file-upload';
+  sourceRef: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type StoredData = {

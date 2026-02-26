@@ -64,7 +64,7 @@ const getCanvasImage = (canvas: any): { imageService?: string; imageUrl?: string
   return { imageService: serviceId, imageUrl };
 };
 
-export const parseManifest = (manifest: any, sourceKey: string): ManifestState => {
+export const parseManifest = (manifest: any): ManifestState => {
   if (manifest?.type !== 'Manifest') {
     throw new Error('IIIF Presentation API v3 の Manifest ではありません。');
   }
@@ -94,7 +94,6 @@ export const parseManifest = (manifest: any, sourceKey: string): ManifestState =
   return {
     id: getString(manifest.id),
     label: parseLabel(manifest.label) || 'Untitled Manifest',
-    sourceKey,
     canvases
   };
 };
