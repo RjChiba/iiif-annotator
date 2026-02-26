@@ -23,7 +23,6 @@ export async function POST(req: NextRequest) {
 
   const baseName = file.name.replace(/\.pdf$/i, '');
   const pageCount = document.getPageCount();
-  const padLength = Math.max(String(pageCount).length, 3);
 
   const dir = uploadDir(projectId);
   await fs.mkdir(dir, { recursive: true });
@@ -48,9 +47,8 @@ export async function POST(req: NextRequest) {
       .png()
       .toBuffer();
 
-    const pageNum = i + 1;
-    const pageStr = String(pageNum).padStart(padLength, '0');
-    const filename = `${baseName}-page-${pageStr}.png`.replace(/[/\\:*?"<>|\x00-\x1f]/g, '_');
+    const pageStr = String(i).padStart(5, '0');
+    const filename = `${baseName}_${pageStr}.png`.replace(/[/\\:*?"<>|\x00-\x1f]/g, '_');
     const filePath = path.join(dir, filename);
     await fs.writeFile(filePath, pngBuffer);
     files.push({ url: `/uploads/${projectId}/${encodeURIComponent(filename)}`, filename });

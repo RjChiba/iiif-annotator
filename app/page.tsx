@@ -278,18 +278,54 @@ export default function Home() {
   }, [project]);
 
   const onImportNdlOcr = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file || !currentCanvas) return;
+    if (!event.target.files?.length || !project) return;
+    const files = Array.from(event.target.files);
     event.target.value = '';
-    try {
-      const json = JSON.parse(await file.text()) as NdlOcrJson;
-      const imported = parseNdlOcr(json, currentCanvas.id, defaultLanguage);
-      if (imported.length === 0) { setError('インポートできるアノテーションが見つかりませんでした。'); return; }
-      upsertAnnotation(currentCanvas.id, (current) => [...current, ...imported]);
-      setError(null);
-    } catch {
-      setError('NDL OCR JSON の解析に失敗しました。ファイルを確認してください。');
+    const canvases = project.manifest.canvases;
+    const accumulated: Record<string, AnnotationData[]> = {};
+    const errors: string[] = [];
+
+    for (const file of files) {
+      try {
+        const json = JSON.parse(await file.text()) as NdlOcrJson;
+        const baseName = file.name.replace(/\.json$/i, '');
+
+        // Primary match: canvas label equals JSON basename (without extension)
+        let canvasIndex = canvases.findIndex((c) => c.label === baseName);
+
+        // Fallback: extract trailing 1-based numeric index from filename (e.g. _00003 → canvas index 2)
+        if (canvasIndex === -1) {
+          const match = baseName.match(/_(\d+)$/);
+          if (match) {
+            const num = parseInt(match[1], 10);
+            if (num >= 1 && num <= canvases.length) canvasIndex = num - 1;
+          }
+        }
+
+        if (canvasIndex === -1) {
+          errors.push(`${file.name}: 対応する Canvas が見つかりませんでした`);
+          continue;
+        }
+
+        const canvas = canvases[canvasIndex];
+        const imported = parseNdlOcr(json, canvas.id, defaultLanguage);
+        const existing = accumulated[canvas.id] ?? annotationsByCanvas[canvas.id] ?? [];
+        accumulated[canvas.id] = [...existing, ...imported];
+      } catch {
+        errors.push(`${file.name}: 解析に失敗しました`);
+      }
     }
+
+    if (Object.keys(accumulated).length > 0) {
+      setAnnotationsByCanvas((prev) => ({ ...prev, ...accumulated }));
+      // Save all updated canvases to the server
+      for (const [canvasId, items] of Object.entries(accumulated)) {
+        const idx = canvases.findIndex((c) => c.id === canvasId);
+        if (idx !== -1) void saveCanvasAnnotations(idx, canvasId, items);
+      }
+    }
+
+    setError(errors.length > 0 ? errors.join('\n') : null);
   };
 
   const exportAll = () => {
@@ -356,7 +392,7 @@ export default function Home() {
           <button className="rounded border px-3 py-2" onClick={exportAll}>Manifestを書き出し</button>
           <label className="cursor-pointer rounded border px-3 py-2">
             NDL OCR インポート
-            <input type="file" accept="application/json,.json" className="hidden" onChange={onImportNdlOcr} />
+            <input type="file" accept="application/json,.json" multiple className="hidden" onChange={onImportNdlOcr} />
           </label>
         </div>
         {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
