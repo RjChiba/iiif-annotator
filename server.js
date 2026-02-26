@@ -21,7 +21,7 @@ app.prepare().then(() => {
     const { pathname } = parsedUrl;
 
     if (uploadsDir && pathname && pathname.startsWith('/uploads/')) {
-      const rel = pathname.slice('/uploads/'.length);
+      const rel = decodeURIComponent(pathname.slice('/uploads/'.length));
       const filePath = path.resolve(uploadsDir, rel);
       if (!filePath.startsWith(path.resolve(uploadsDir))) {
         res.writeHead(403); res.end(); return;

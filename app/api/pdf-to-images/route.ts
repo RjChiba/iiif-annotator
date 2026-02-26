@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
   const dir = uploadDir(projectId);
   await fs.mkdir(dir, { recursive: true });
 
-  const files: { url: string; filename: string }[] = [];
+  const files: { url: string; filename: string; width: number; height: number }[] = [];
 
   for (let i = 0; i < pageCount; i++) {
     const page = document.getPage(i);
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
     const filename = `${baseName}_${pageStr}.png`.replace(/[/\\:*?"<>|\x00-\x1f]/g, '_');
     const filePath = path.join(dir, filename);
     await fs.writeFile(filePath, pngBuffer);
-    files.push({ url: `/uploads/${projectId}/${encodeURIComponent(filename)}`, filename });
+    files.push({ url: `/uploads/${projectId}/${encodeURIComponent(filename)}`, filename, width: bitmap.width, height: bitmap.height });
   }
 
   document.destroy();

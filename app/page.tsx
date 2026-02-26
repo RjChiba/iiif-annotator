@@ -189,10 +189,9 @@ export default function Home() {
           form.append('file', file);
           const res = await fetch('/api/pdf-to-images', { method: 'POST', body: form });
           if (!res.ok) throw new Error('PDF conversion failed');
-          const { files: pdfFiles } = await res.json() as { files: { url: string; filename: string }[] };
+          const { files: pdfFiles } = await res.json() as { files: { url: string; filename: string; width: number; height: number }[] };
           for (const pdfFile of pdfFiles) {
-            const dims = await loadImageDimensions(pdfFile.url);
-            uploads.push({ ...pdfFile, ...dims });
+            uploads.push(pdfFile);
           }
         } else {
           const form = new FormData();
