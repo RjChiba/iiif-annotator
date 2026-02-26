@@ -50,10 +50,10 @@ export async function POST(req: NextRequest) {
 
     const pageNum = i + 1;
     const pageStr = String(pageNum).padStart(padLength, '0');
-    const filename = `${baseName}-page-${pageStr}.png`.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const filename = `${baseName}-page-${pageStr}.png`.replace(/[/\\:*?"<>|\x00-\x1f]/g, '_');
     const filePath = path.join(dir, filename);
     await fs.writeFile(filePath, pngBuffer);
-    files.push({ url: `/uploads/${projectId}/${filename}`, filename });
+    files.push({ url: `/uploads/${projectId}/${encodeURIComponent(filename)}`, filename });
   }
 
   document.destroy();
