@@ -308,7 +308,10 @@ export default function Home() {
         }
 
         const canvas = canvases[canvasIndex];
-        const imported = parseNdlOcr(json, canvas.id, defaultLanguage);
+        const imported = parseNdlOcr(json, canvas.id, defaultLanguage, {
+          width: canvas.width,
+          height: canvas.height,
+        });
         const existing = accumulated[canvas.id] ?? annotationsByCanvas[canvas.id] ?? [];
         accumulated[canvas.id] = [...existing, ...imported];
       } catch {
