@@ -6,6 +6,7 @@ import { AnnotationData, ManifestState, ProjectMeta } from '@/lib/types';
 import ImageAnnotator from '@/components/ImageAnnotator';
 import { buildAnnotationPage, buildManifestWithAnnotations, downloadJson } from '@/lib/export';
 import { parseNdlOcr, NdlOcrJson } from '@/lib/ndl-ocr';
+import { ChevronLeft, ChevronRight, Layers, VectorSquare, View } from 'lucide-react';
 
 const preview = (text: string) => (text.length > 24 ? `${text.slice(0, 24)}...` : text || '（未入力）');
 
@@ -45,6 +46,26 @@ export default function Home() {
     return [...(annotationsByCanvas[currentCanvas.id] || [])].sort((a, b) => a.y - b.y);
   }, [annotationsByCanvas, currentCanvas]);
   const selected = currentAnnotations.find((a) => a.id === selectedId);
+  const annotationCountByCanvas = useMemo(
+    () =>
+      Object.fromEntries(
+        project?.manifest.canvases.map((canvas) => [canvas.id, annotationsByCanvas[canvas.id]?.length ?? 0]) ?? []
+      ),
+    [project, annotationsByCanvas]
+  );
+  const iconButtonClass =
+    'inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:border-slate-300 hover:text-slate-900 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-100';
+
+  const goPrevCanvas = () => {
+    setCurrentCanvasIndex((v) => Math.max(v - 1, 0));
+    setSelectedId(undefined);
+  };
+
+  const goNextCanvas = () => {
+    if (!project) return;
+    setCurrentCanvasIndex((v) => Math.min(v + 1, project.manifest.canvases.length - 1));
+    setSelectedId(undefined);
+  };
 
   const refreshProjects = async () => {
     const res = await fetch('/api/projects');
@@ -347,130 +368,275 @@ export default function Home() {
 
   if (!project) {
     return (
-      <main className="min-h-screen bg-slate-100 p-4 text-slate-900">
-        <div className="mx-auto max-w-5xl rounded border bg-white p-4">
-          <h1 className="text-lg font-semibold">プロジェクト一覧</h1>
-          <p className="text-sm text-slate-600">既存プロジェクトを開くか、新規プロジェクトを作成してください。</p>
+      <main className="min-h-screen bg-gradient-to-b from-slate-100 to-slate-200/70 p-4 text-slate-900">
+        <div className="mx-auto max-w-5xl space-y-4">
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h1 className="text-xl font-semibold tracking-tight">プロジェクト一覧</h1>
+            <p className="mt-1 text-sm text-slate-600">既存プロジェクトを開くか、新規プロジェクトを作成してください。</p>
 
-          <div className="mt-3 rounded border p-3">
-            <h2 className="mb-2 font-medium">新規プロジェクト作成</h2>
-            <div className="flex flex-wrap items-center gap-2">
-              <input className="min-w-80 flex-1 rounded border px-3 py-2" value={manifestUrl} onChange={(e) => setManifestUrl(e.target.value)} placeholder="https://example.org/manifest.json" />
-              <button className="rounded bg-blue-600 px-4 py-2 text-white" onClick={onLoadUrl} disabled={loading}>{loading ? '読み込み中...' : 'Manifest URL読込'}</button>
-              <label className="cursor-pointer rounded border px-4 py-2">
-                Manifest ファイル
-                <input type="file" accept="application/json,.json" className="hidden" onChange={onUploadManifestFile} />
-              </label>
-              <label className="cursor-pointer rounded border px-4 py-2">
-                画像 / PDF アップロード
-                <input type="file" accept="image/jpeg,image/png,application/pdf" multiple className="hidden" onChange={onUploadFiles} />
-              </label>
-            </div>
-            {projectBusy && <p className="mt-2 text-sm">アップロード処理中...</p>}
-            {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
-          </div>
-
-          <div className="mt-4">
-            {projects.map((p) => (
-              <div key={p.id} className="mb-2 flex items-center justify-between rounded border p-3">
-                <button className="text-left" onClick={() => void loadProject(p.id.replace('urn:uuid:', ''))}>
-                  <div className="font-medium">{p.name}</div>
-                  <div className="text-xs text-slate-600">作成: {new Date(p.createdAt).toLocaleString()} / 更新: {new Date(p.updatedAt).toLocaleString()}</div>
+            <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50/80 p-4">
+              <h2 className="mb-2 text-sm font-semibold">新規プロジェクト作成</h2>
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  className="min-w-[16rem] flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-blue-400"
+                  value={manifestUrl}
+                  onChange={(e) => setManifestUrl(e.target.value)}
+                  placeholder="https://example.org/manifest.json"
+                />
+                <button
+                  className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
+                  onClick={onLoadUrl}
+                  disabled={loading}
+                >
+                  {loading ? '読み込み中...' : 'Manifest URL読込'}
                 </button>
-                <button className="rounded bg-red-600 px-3 py-1 text-white" onClick={() => void onDeleteProject(p.id.replace('urn:uuid:', ''))}>削除</button>
+                <label className="cursor-pointer rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm transition hover:border-slate-400">
+                  Manifest ファイル
+                  <input type="file" accept="application/json,.json" className="hidden" onChange={onUploadManifestFile} />
+                </label>
+                <label className="cursor-pointer rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm transition hover:border-slate-400">
+                  画像 / PDF アップロード
+                  <input type="file" accept="image/jpeg,image/png,application/pdf" multiple className="hidden" onChange={onUploadFiles} />
+                </label>
               </div>
-            ))}
-          </div>
+              {projectBusy && <p className="mt-2 text-sm text-slate-600">アップロード処理中...</p>}
+              {error && <p className="mt-2 whitespace-pre-wrap text-sm text-red-600">{error}</p>}
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+            {projects.length === 0 ? (
+              <p className="px-2 py-6 text-center text-sm text-slate-500">プロジェクトがありません。</p>
+            ) : (
+              projects.map((p) => (
+                <div key={p.id} className="mb-2 flex items-center justify-between rounded-xl border border-slate-200 p-3 last:mb-0">
+                  <button className="text-left" onClick={() => void loadProject(p.id.replace('urn:uuid:', ''))}>
+                    <div className="font-medium">{p.name}</div>
+                    <div className="text-xs text-slate-600">
+                      作成: {new Date(p.createdAt).toLocaleString()} / 更新: {new Date(p.updatedAt).toLocaleString()}
+                    </div>
+                  </button>
+                  <button
+                    className="rounded-lg bg-red-600 px-3 py-1 text-sm text-white transition hover:bg-red-500"
+                    onClick={() => void onDeleteProject(p.id.replace('urn:uuid:', ''))}
+                  >
+                    削除
+                  </button>
+                </div>
+              ))
+            )}
+          </section>
         </div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-slate-100 p-4 text-slate-900">
-      <div className="mb-4 rounded border bg-white p-3">
-        <h1 className="text-lg font-semibold">{project.meta.name}</h1>
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <button className="rounded border px-3 py-2" onClick={() => setProject(null)}>← プロジェクト一覧</button>
-          <button className="rounded border px-3 py-2" onClick={() => setDrawMode((v) => !v)}>{drawMode ? '閲覧モード' : '描画モード'}</button>
-          <button className="rounded border px-3 py-2" onClick={exportAll}>Manifestを書き出し</button>
-          <label className="cursor-pointer rounded border px-3 py-2">
-            NDL OCR インポート
-            <input type="file" accept="application/json,.json" multiple className="hidden" onChange={onImportNdlOcr} />
-          </label>
-        </div>
-        {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
-      </div>
-
-      <div className={`grid h-[calc(100vh-170px)] gap-3 ${showCanvasList ? 'grid-cols-[18rem_1fr_22rem]' : 'grid-cols-[1fr_22rem]'}`}>
-        {showCanvasList && (
-          <aside className="overflow-y-auto rounded border bg-white p-2">
-            <h2 className="mb-2 font-medium">Canvas 一覧</h2>
-            {project.manifest.canvases.map((canvas, index) => (
-              <button
-                key={canvas.id}
-                className={`mb-2 block w-full rounded border p-2 text-left text-sm ${index === currentCanvasIndex ? 'border-blue-500 bg-blue-50' : 'border-slate-200'}`}
-                onClick={() => { setCurrentCanvasIndex(index); setSelectedId(undefined); }}
-              >
-                <div className="mb-1 font-medium">{index + 1}. {canvas.label}</div>
-                {canvas.thumbnail && <img src={canvas.thumbnail} alt={canvas.label} className="h-20 w-full rounded object-cover" />}
-              </button>
-            ))}
-          </aside>
-        )}
-
-        <section className="flex min-h-0 flex-col gap-2">
-          <div className="flex items-center justify-between rounded border bg-white p-2">
-            <div className="flex items-center gap-2">
-              <button className="rounded border px-3 py-1" onClick={() => setShowCanvasList((v) => !v)}>{showCanvasList ? 'Canvas 一覧を隠す' : 'Canvas 一覧を表示'}</button>
-              <button className="rounded border px-3 py-1" disabled={currentCanvasIndex === 0} onClick={() => setCurrentCanvasIndex((v) => Math.max(v - 1, 0))}>← 前のページ</button>
+    <main className="min-h-screen bg-gradient-to-b from-slate-100 to-slate-200/70 text-slate-900">
+      <div className="mx-auto flex max-w-[1700px] flex-col gap-4 p-4">
+        <header className="rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-sm backdrop-blur">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Project</p>
+              <h1 className="text-xl font-semibold tracking-tight">{project.meta.name}</h1>
             </div>
-            <div className="text-sm">{`${currentCanvasIndex + 1} / ${project.manifest.canvases.length}`}</div>
-            <button className="rounded border px-3 py-1" disabled={currentCanvasIndex >= project.manifest.canvases.length - 1} onClick={() => setCurrentCanvasIndex((v) => Math.min(v + 1, project.manifest.canvases.length - 1))}>次のページ →</button>
-          </div>
-          <div className="min-h-0 flex-1">
-            <ImageAnnotator
-              canvas={currentCanvas}
-              annotations={currentAnnotations}
-              selectedId={selectedId}
-              drawMode={drawMode}
-              onSelect={setSelectedId}
-              onCreate={onCreateAnnotation}
-              onUpdate={onUpdateAnnotation}
-            />
-          </div>
-        </section>
-
-        <aside className="flex min-h-0 flex-col rounded border bg-white p-2">
-          <h2 className="mb-2 font-medium">アノテーション一覧</h2>
-          <div className="min-h-0 flex-1 overflow-y-auto">
-            {currentAnnotations.map((anno, index) => (
+            <div className="flex flex-wrap items-center gap-2">
               <button
-                key={anno.id}
-                className={`mb-1 block w-full rounded border p-2 text-left text-sm ${selectedId === anno.id ? 'border-blue-500 bg-blue-50' : 'border-slate-200'}`}
-                onClick={() => setSelectedId(anno.id)}
+                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm transition hover:border-slate-400"
+                onClick={() => setProject(null)}
               >
-                <div className="font-medium">#{index + 1}</div>
-                <div>{preview(anno.text)}</div>
+                ← プロジェクト一覧
               </button>
-            ))}
+              <button
+                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm transition hover:border-slate-400"
+                onClick={exportAll}
+              >
+                Manifestを書き出し
+              </button>
+              <label className="cursor-pointer rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm transition hover:border-slate-400">
+                NDL OCR インポート
+                <input type="file" accept="application/json,.json" multiple className="hidden" onChange={onImportNdlOcr} />
+              </label>
+            </div>
           </div>
+          {error && <p className="mt-2 whitespace-pre-wrap text-sm text-red-600">{error}</p>}
+        </header>
 
-          <div className="mt-2 border-t pt-2">
-            <h3 className="mb-1 text-sm font-medium">編集</h3>
-            <label className="mb-1 block text-xs text-slate-600">デフォルト言語</label>
-            <input className="mb-2 w-full rounded border px-2 py-1 text-sm" value={defaultLanguage} onChange={(e) => setDefaultLanguage(e.target.value)} placeholder="ja" />
-            {selected ? (
-              <>
-                <label className="mb-1 block text-xs text-slate-600">テキスト</label>
-                <textarea className="mb-2 h-28 w-full rounded border p-2 text-sm" value={selected.text} onChange={(e) => onUpdateAnnotation(selected.id, { text: e.target.value })} />
-                <label className="mb-1 block text-xs text-slate-600">言語コード</label>
-                <input className="mb-2 w-full rounded border px-2 py-1 text-sm" value={selected.language} onChange={(e) => onUpdateAnnotation(selected.id, { language: e.target.value })} placeholder="ja" />
-                <button className="rounded bg-red-600 px-3 py-1 text-sm text-white" onClick={onDeleteSelected}>削除</button>
-              </>
-            ) : <p className="text-sm text-slate-500">アノテーションを選択すると編集できます。</p>}
-          </div>
-        </aside>
+        <div className={`grid h-[calc(100vh-186px)] gap-3 ${showCanvasList ? 'grid-cols-[17rem_minmax(0,1fr)_21rem]' : 'grid-cols-[minmax(0,1fr)_21rem]'}`}>
+          {showCanvasList && (
+            <aside className="min-h-0 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
+              <h2 className="mb-2 px-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Canvas 一覧</h2>
+              <div className="space-y-2">
+                {project.manifest.canvases.map((canvas, index) => (
+                  <button
+                    key={canvas.id}
+                    className={`block w-full rounded-xl border p-2 text-left text-sm transition ${
+                      index === currentCanvasIndex
+                        ? 'border-blue-300 bg-blue-50 shadow-sm'
+                        : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                    }`}
+                    onClick={() => { setCurrentCanvasIndex(index); setSelectedId(undefined); }}
+                  >
+                    <div className="mb-1 flex items-center justify-between gap-2">
+                      <div className="truncate font-medium">{index + 1}. {canvas.label}</div>
+                      <div className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600">
+                        {annotationCountByCanvas[canvas.id] ?? 0}
+                      </div>
+                    </div>
+                    {canvas.thumbnail && <img src={canvas.thumbnail} alt={canvas.label} className="h-20 w-full rounded-lg object-cover" />}
+                  </button>
+                ))}
+              </div>
+            </aside>
+          )}
+
+          <section className="flex min-h-0 flex-col gap-3">
+            <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
+              <div className="flex items-center gap-2">
+                <button
+                  className={iconButtonClass}
+                  onClick={() => setShowCanvasList((v) => !v)}
+                  aria-label={showCanvasList ? 'Canvas 一覧を隠す' : 'Canvas 一覧を表示'}
+                  title={showCanvasList ? 'Canvas 一覧を隠す' : 'Canvas 一覧を表示'}
+                >
+                  <Layers className="h-4 w-4" />
+                </button>
+                <div className="flex items-center gap-1 p-1">
+                  <div className="group relative">
+                    <button
+                      className={`${iconButtonClass} ${
+                        drawMode
+                          ? 'border-blue-300 bg-blue-50 text-blue-700 disabled:border-blue-300 disabled:bg-blue-50 disabled:text-blue-700'
+                          : ''
+                      }`}
+                      onClick={() => setDrawMode(true)}
+                      disabled={drawMode}
+                      aria-label="編集モード"
+                    >
+                      <VectorSquare className="h-4 w-4" />
+                    </button>
+                    <span className="pointer-events-none absolute -bottom-7 left-1/2 -translate-x-1/2 rounded bg-slate-900 px-2 py-1 text-[11px] text-white opacity-0 transition group-hover:opacity-100">
+                      編集モード
+                    </span>
+                  </div>
+                  <div className="group relative">
+                    <button
+                      className={`${iconButtonClass} ${
+                        !drawMode
+                          ? 'border-blue-300 bg-blue-50 text-blue-700 disabled:border-blue-300 disabled:bg-blue-50 disabled:text-blue-700'
+                          : ''
+                      }`}
+                      onClick={() => setDrawMode(false)}
+                      disabled={!drawMode}
+                      aria-label="閲覧モード"
+                    >
+                      <View className="h-4 w-4" />
+                    </button>
+                    <span className="pointer-events-none absolute -bottom-7 left-1/2 -translate-x-1/2 rounded bg-slate-900 px-2 py-1 text-[11px] text-white opacity-0 transition group-hover:opacity-100">
+                      閲覧モード
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700">
+                {`${currentCanvasIndex + 1} / ${project.manifest.canvases.length}`}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  className={iconButtonClass}
+                  disabled={currentCanvasIndex === 0}
+                  onClick={goPrevCanvas}
+                  aria-label="前のページ"
+                  title="前のページ"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <button
+                  className={iconButtonClass}
+                  disabled={currentCanvasIndex >= project.manifest.canvases.length - 1}
+                  onClick={goNextCanvas}
+                  aria-label="次のページ"
+                  title="次のページ"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+            <div className="min-h-0 flex-1 overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
+              <div className="h-full overflow-hidden rounded-xl border border-slate-100 bg-slate-50/60 p-1">
+                <ImageAnnotator
+                  canvas={currentCanvas}
+                  annotations={currentAnnotations}
+                  selectedId={selectedId}
+                  drawMode={drawMode}
+                  onSelect={setSelectedId}
+                  onCreate={onCreateAnnotation}
+                  onUpdate={onUpdateAnnotation}
+                />
+              </div>
+            </div>
+          </section>
+
+          <aside className="flex min-h-0 flex-col rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+            <h2 className="text-sm font-semibold">アノテーション一覧</h2>
+            <div className="mt-2 min-h-0 flex-1 overflow-y-auto pr-1">
+              {currentAnnotations.length === 0 ? (
+                <p className="mt-8 text-center text-sm text-slate-500">この Canvas にアノテーションはありません。</p>
+              ) : (
+                currentAnnotations.map((anno, index) => (
+                  <button
+                    key={anno.id}
+                    className={`mb-1 block w-full rounded-xl border p-2 text-left text-sm transition ${
+                      selectedId === anno.id
+                        ? 'border-blue-300 bg-blue-50'
+                        : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                    }`}
+                    onClick={() => setSelectedId(anno.id)}
+                  >
+                    <div className="font-medium">#{index + 1}</div>
+                    <div className="text-slate-700">{preview(anno.text)}</div>
+                  </button>
+                ))
+              )}
+            </div>
+
+            <div className="mt-3 border-t border-slate-200 pt-3">
+              <h3 className="mb-1 text-sm font-medium">編集</h3>
+              <label className="mb-1 block text-xs text-slate-600">デフォルト言語</label>
+              <input
+                className="mb-2 w-full rounded-lg border border-slate-300 px-2 py-1 text-sm outline-none transition focus:border-blue-400"
+                value={defaultLanguage}
+                onChange={(e) => setDefaultLanguage(e.target.value)}
+                placeholder="ja"
+              />
+              {selected ? (
+                <>
+                  <label className="mb-1 block text-xs text-slate-600">テキスト</label>
+                  <textarea
+                    className="mb-2 h-28 w-full rounded-lg border border-slate-300 p-2 text-sm outline-none transition focus:border-blue-400"
+                    value={selected.text}
+                    onChange={(e) => onUpdateAnnotation(selected.id, { text: e.target.value })}
+                  />
+                  <label className="mb-1 block text-xs text-slate-600">言語コード</label>
+                  <input
+                    className="mb-2 w-full rounded-lg border border-slate-300 px-2 py-1 text-sm outline-none transition focus:border-blue-400"
+                    value={selected.language}
+                    onChange={(e) => onUpdateAnnotation(selected.id, { language: e.target.value })}
+                    placeholder="ja"
+                  />
+                  <button
+                    className="rounded-lg bg-red-600 px-3 py-1 text-sm text-white transition hover:bg-red-500"
+                    onClick={onDeleteSelected}
+                  >
+                    削除
+                  </button>
+                </>
+              ) : (
+                <p className="text-sm text-slate-500">アノテーションを選択すると編集できます。</p>
+              )}
+            </div>
+          </aside>
+        </div>
       </div>
     </main>
   );
