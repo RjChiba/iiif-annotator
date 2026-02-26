@@ -1,12 +1,28 @@
 {
   "name": "iiif-annotator",
-  "version": "0.1.0",
-  "private": true,
+  "version": "0.3.0",
+  "description": "A local IIIF manifest annotator — run via npx to annotate IIIF images in your browser",
+  "keywords": ["iiif", "annotation", "manifest", "openseadragon"],
+  "bin": {
+    "iiif-annotator": "bin/cli.js"
+  },
+  "files": [
+    ".next/",
+    "public/",
+    "server.js",
+    "bin/",
+    "next.config.ts"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "prepublishOnly": "next build",
+    "init": "npm run build && npm run start"
   },
   "dependencies": {
     "@hyzyla/pdfium": "^2.1.11",
