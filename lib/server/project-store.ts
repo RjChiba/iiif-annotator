@@ -13,8 +13,13 @@ export type ProjectMeta = {
   updatedAt: string;
 };
 
-const dataRoot = path.join(process.cwd(), 'data', 'projects');
-const publicUploadsRoot = path.join(process.cwd(), 'public', 'uploads');
+const iiifDataDir = process.env.IIIF_DATA_DIR;
+const dataRoot = iiifDataDir
+  ? path.join(iiifDataDir, 'projects')
+  : path.join(process.cwd(), 'data', 'projects');
+const publicUploadsRoot = iiifDataDir
+  ? path.join(iiifDataDir, 'uploads')
+  : path.join(process.cwd(), 'public', 'uploads');
 
 const projectDir = (projectId: string) => path.join(dataRoot, projectId);
 const metaPath = (projectId: string) => path.join(projectDir(projectId), 'meta.json');
