@@ -37,6 +37,7 @@ export default function Home() {
   const [drawMode, setDrawMode] = useState(false);
   const [defaultLanguage, setDefaultLanguage] = useState('ja');
   const [projectBusy, setProjectBusy] = useState(false);
+  const [showCanvasList, setShowCanvasList] = useState(true);
 
   const currentCanvas = project?.manifest.canvases[currentCanvasIndex];
   const currentAnnotations = useMemo(() => {
@@ -401,24 +402,29 @@ export default function Home() {
         {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
       </div>
 
-      <div className="grid h-[calc(100vh-170px)] grid-cols-[18rem_1fr_22rem] gap-3">
-        <aside className="overflow-y-auto rounded border bg-white p-2">
-          <h2 className="mb-2 font-medium">Canvas 一覧</h2>
-          {project.manifest.canvases.map((canvas, index) => (
-            <button
-              key={canvas.id}
-              className={`mb-2 block w-full rounded border p-2 text-left text-sm ${index === currentCanvasIndex ? 'border-blue-500 bg-blue-50' : 'border-slate-200'}`}
-              onClick={() => { setCurrentCanvasIndex(index); setSelectedId(undefined); }}
-            >
-              <div className="mb-1 font-medium">{index + 1}. {canvas.label}</div>
-              {canvas.thumbnail && <img src={canvas.thumbnail} alt={canvas.label} className="h-20 w-full rounded object-cover" />}
-            </button>
-          ))}
-        </aside>
+      <div className={`grid h-[calc(100vh-170px)] gap-3 ${showCanvasList ? 'grid-cols-[18rem_1fr_22rem]' : 'grid-cols-[1fr_22rem]'}`}>
+        {showCanvasList && (
+          <aside className="overflow-y-auto rounded border bg-white p-2">
+            <h2 className="mb-2 font-medium">Canvas 一覧</h2>
+            {project.manifest.canvases.map((canvas, index) => (
+              <button
+                key={canvas.id}
+                className={`mb-2 block w-full rounded border p-2 text-left text-sm ${index === currentCanvasIndex ? 'border-blue-500 bg-blue-50' : 'border-slate-200'}`}
+                onClick={() => { setCurrentCanvasIndex(index); setSelectedId(undefined); }}
+              >
+                <div className="mb-1 font-medium">{index + 1}. {canvas.label}</div>
+                {canvas.thumbnail && <img src={canvas.thumbnail} alt={canvas.label} className="h-20 w-full rounded object-cover" />}
+              </button>
+            ))}
+          </aside>
+        )}
 
         <section className="flex min-h-0 flex-col gap-2">
           <div className="flex items-center justify-between rounded border bg-white p-2">
-            <button className="rounded border px-3 py-1" disabled={currentCanvasIndex === 0} onClick={() => setCurrentCanvasIndex((v) => Math.max(v - 1, 0))}>← 前のページ</button>
+            <div className="flex items-center gap-2">
+              <button className="rounded border px-3 py-1" onClick={() => setShowCanvasList((v) => !v)}>{showCanvasList ? 'Canvas 一覧を隠す' : 'Canvas 一覧を表示'}</button>
+              <button className="rounded border px-3 py-1" disabled={currentCanvasIndex === 0} onClick={() => setCurrentCanvasIndex((v) => Math.max(v - 1, 0))}>← 前のページ</button>
+            </div>
             <div className="text-sm">{`${currentCanvasIndex + 1} / ${project.manifest.canvases.length}`}</div>
             <button className="rounded border px-3 py-1" disabled={currentCanvasIndex >= project.manifest.canvases.length - 1} onClick={() => setCurrentCanvasIndex((v) => Math.min(v + 1, project.manifest.canvases.length - 1))}>次のページ →</button>
           </div>
