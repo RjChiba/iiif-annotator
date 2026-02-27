@@ -1,6 +1,7 @@
 'use client';
 
-import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { ChangeEvent, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { parseManifest } from '@/lib/iiif';
 import { AnnotationData, ManifestState, ProjectMeta } from '@/lib/types';
 import ImageAnnotator from '@/components/ImageAnnotator';
@@ -25,7 +26,9 @@ const loadImageDimensions = async (url: string): Promise<{ width: number; height
     image.src = url;
   });
 
-export default function Home() {
+function HomeContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [projects, setProjects] = useState<ProjectMeta[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -89,6 +92,8 @@ export default function Home() {
 
   useEffect(() => {
     void refreshProjects();
+    const projectId = searchParams.get('project');
+    if (projectId) void loadProject(projectId);
   }, []);
 
   const loadProject = async (projectId: string) => {
@@ -129,6 +134,7 @@ export default function Home() {
       setAnnotationsByCanvas(byCanvas);
       setCurrentCanvasIndex(0);
       setSelectedId(undefined);
+      router.replace(`?project=${projectId}`, { scroll: false });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'プロジェクト読み込みに失敗しました。');
     } finally {
@@ -483,7 +489,7 @@ export default function Home() {
             <div className="flex flex-wrap items-center gap-2">
               <button
                 className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm transition hover:border-slate-400"
-                onClick={() => setProject(null)}
+                onClick={() => { setProject(null); router.replace('/', { scroll: false }); }}
               >
                 ← プロジェクト一覧
               </button>
@@ -733,5 +739,13 @@ export default function Home() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense>
+      <HomeContent />
+    </Suspense>
   );
 }
