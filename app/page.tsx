@@ -295,6 +295,18 @@ export default function Home() {
   };
 
   useEffect(() => {
+    const listener = (event: globalThis.KeyboardEvent) => {
+      if (event.key === 'Delete' || event.key === 'Backspace') {
+        const tag = (event.target as HTMLElement).tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+        onDeleteSelected();
+      }
+    };
+    window.addEventListener('keydown', listener);
+    return () => window.removeEventListener('keydown', listener);
+  }, [selected, currentCanvas]);
+
+  useEffect(() => {
     if (!project || !currentCanvas || isBboxDragging.current) return;
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
