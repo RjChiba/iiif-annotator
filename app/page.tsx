@@ -642,12 +642,20 @@ export default function Home() {
                     onChange={(e) => onUpdateAnnotation(selected.id, { language: e.target.value })}
                     placeholder="ja"
                   />
-                  <button
-                    className="rounded-lg bg-red-600 px-3 py-1 text-sm text-white transition hover:bg-red-500"
-                    onClick={onDeleteSelected}
-                  >
-                    削除
-                  </button>
+                  <div className="flex flex-row gap-2">
+                    <button
+                      className="rounded-lg border border-slate-200 px-3 py-1 text-sm bg-white text-slate-900 transition hover:border-slate-300"
+                      onClick={() => setSelectedId(undefined)}
+                    >
+                      保存
+                    </button>
+                    <button
+                      className="rounded-lg bg-red-600 px-3 py-1 text-sm text-white transition hover:bg-red-500"
+                      onClick={onDeleteSelected}
+                    >
+                      削除
+                    </button>
+                  </div>
                 </>
               ) : (
                 <p className="text-sm text-slate-500">アノテーションを選択すると編集できます。</p>
