@@ -1,6 +1,6 @@
 {
   "name": "iiif-annotator",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "A local IIIF manifest annotator — run via npx to annotate IIIF images in your browser",
   "keywords": [
     "iiif",
