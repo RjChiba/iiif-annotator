@@ -63,7 +63,8 @@ export const buildAnnotationPage = (annotations: AnnotationData[]) => ({
       format: 'text/plain',
       ...(a.language ? { language: a.language } : {})
     },
-    target: toTarget(a)
+    target: toTarget(a),
+    ...(a.extras && Object.keys(a.extras).length > 0 ? { _extras: a.extras } : {})
   }))
 });
 

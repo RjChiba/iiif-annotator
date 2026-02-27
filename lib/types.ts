@@ -19,6 +19,8 @@ export type AnnotationData = {
   text: string;
   language: string;
   createdAt: number;
+  /** Optional non-IIIF values (e.g. OCR confidence). Stored separately from the exported manifest. */
+  extras?: Record<string, unknown>;
 };
 
 export type ManifestState = {

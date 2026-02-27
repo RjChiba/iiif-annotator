@@ -66,6 +66,9 @@ export function parseNdlOcr(
         bottom = clamp(bottom, 0, targetHeight);
       }
 
+      const extras: Record<string, unknown> = {};
+      if (typeof item.confidence === 'number') extras.confidence = item.confidence;
+
       return {
         id: `ndl-ocr-${now}-${idx}`,
         canvasId,
@@ -76,6 +79,7 @@ export function parseNdlOcr(
         text: item.text,
         language,
         createdAt: now + idx,
+        ...(Object.keys(extras).length > 0 ? { extras } : {}),
       } as AnnotationData;
     });
 }

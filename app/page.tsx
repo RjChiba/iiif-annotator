@@ -42,6 +42,7 @@ function HomeContent() {
   const [selectedId, setSelectedId] = useState<string | undefined>();
   const [drawMode, setDrawMode] = useState(false);
   const [defaultLanguage, setDefaultLanguage] = useState('ja');
+  const [sortMode, setSortMode] = useState<'position' | 'confidence-asc' | 'confidence-desc'>('position');
   const [projectBusy, setProjectBusy] = useState(false);
   const [showCanvasList, setShowCanvasList] = useState(true);
   const [safeDeleteEnabled, setSafeDeleteEnabled] = useState(true);
@@ -52,8 +53,17 @@ function HomeContent() {
   const currentCanvas = project?.manifest.canvases[currentCanvasIndex];
   const currentAnnotations = useMemo(() => {
     if (!currentCanvas) return [];
-    return [...(annotationsByCanvas[currentCanvas.id] || [])].sort((a, b) => a.y - b.y);
-  }, [annotationsByCanvas, currentCanvas]);
+    const items = [...(annotationsByCanvas[currentCanvas.id] || [])];
+    if (sortMode === 'confidence-asc' || sortMode === 'confidence-desc') {
+      const dir = sortMode === 'confidence-asc' ? 1 : -1;
+      return items.sort((a, b) => {
+        const ca = typeof a.extras?.confidence === 'number' ? a.extras.confidence : (dir > 0 ? Infinity : -Infinity);
+        const cb = typeof b.extras?.confidence === 'number' ? b.extras.confidence : (dir > 0 ? Infinity : -Infinity);
+        return (ca - cb) * dir;
+      });
+    }
+    return items.sort((a, b) => a.y - b.y);
+  }, [annotationsByCanvas, currentCanvas, sortMode]);
   currentAnnotationsRef.current = currentAnnotations;
   const selected = currentAnnotations.find((a) => a.id === selectedId);
   const annotationCountByCanvas = useMemo(
@@ -114,7 +124,8 @@ function HomeContent() {
                 h,
                 text: item?.body?.value || '',
                 language: item?.body?.language || '',
-                createdAt: Date.now() + idx
+                createdAt: Date.now() + idx,
+                ...(item._extras ? { extras: item._extras as Record<string, unknown> } : {})
               } as AnnotationData;
             });
             return [canvas.id, loaded];
@@ -628,25 +639,50 @@ function HomeContent() {
           </section>
 
           <aside className="flex min-h-0 flex-col rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-            <h2 className="text-sm font-semibold">アノテーション一覧</h2>
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-sm font-semibold">アノテーション一覧</h2>
+              <select
+                className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-600 outline-none transition focus:border-blue-400"
+                value={sortMode}
+                onChange={(e) => setSortMode(e.target.value as typeof sortMode)}
+              >
+                <option value="position">位置順</option>
+                <option value="confidence-desc">確信度（高→低）</option>
+                <option value="confidence-asc">確信度（低→高）</option>
+              </select>
+            </div>
             <div className="mt-2 min-h-0 flex-1 overflow-y-auto pr-1">
               {currentAnnotations.length === 0 ? (
                 <p className="mt-8 text-center text-sm text-slate-500">この Canvas にアノテーションはありません。</p>
               ) : (
-                currentAnnotations.map((anno, index) => (
-                  <button
-                    key={anno.id}
-                    className={`mb-1 block w-full rounded-xl border p-2 text-left text-sm transition ${
-                      selectedId === anno.id
-                        ? 'border-blue-300 bg-blue-50'
-                        : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
-                    }`}
-                    onClick={() => setSelectedId(anno.id)}
-                  >
-                    <div className="font-medium">#{index + 1}</div>
-                    <div className="text-slate-700">{preview(anno.text)}</div>
-                  </button>
-                ))
+                currentAnnotations.map((anno, index) => {
+                  const conf = typeof anno.extras?.confidence === 'number' ? anno.extras.confidence as number : undefined;
+                  return (
+                    <button
+                      key={anno.id}
+                      className={`mb-1 block w-full rounded-xl border p-2 text-left text-sm transition ${
+                        selectedId === anno.id
+                          ? 'border-blue-300 bg-blue-50'
+                          : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                      }`}
+                      onClick={() => setSelectedId(anno.id)}
+                    >
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="font-medium">#{index + 1}</span>
+                        {conf !== undefined && (
+                          <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
+                            conf >= 0.9 ? 'bg-green-100 text-green-800' :
+                            conf >= 0.7 ? 'bg-amber-100 text-amber-800' :
+                            'bg-red-100 text-red-800'
+                          }`}>
+                            {(conf * 100).toFixed(1)}%
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-slate-700">{preview(anno.text)}</div>
+                    </button>
+                  );
+                })
               )}
             </div>
 
@@ -674,6 +710,26 @@ function HomeContent() {
                     onChange={(e) => onUpdateAnnotation(selected.id, { language: e.target.value })}
                     placeholder="ja"
                   />
+                  {typeof selected.extras?.confidence === 'number' && (
+                    <>
+                      <label className="mb-1 block text-xs text-slate-600">確信度</label>
+                      <div className="mb-2 flex items-center gap-2">
+                        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-200">
+                          <div
+                            className={`h-full rounded-full ${
+                              (selected.extras.confidence as number) >= 0.9 ? 'bg-green-500' :
+                              (selected.extras.confidence as number) >= 0.7 ? 'bg-amber-400' :
+                              'bg-red-500'
+                            }`}
+                            style={{ width: `${(selected.extras.confidence as number) * 100}%` }}
+                          />
+                        </div>
+                        <span className="text-xs text-slate-600">
+                          {((selected.extras.confidence as number) * 100).toFixed(1)}%
+                        </span>
+                      </div>
+                    </>
+                  )}
                   <div className="flex flex-row gap-2">
                     <button
                       className="rounded-lg border border-slate-200 px-3 py-1 text-sm bg-white text-slate-900 transition hover:border-slate-300"
