@@ -1,6 +1,6 @@
 {
   "name": "iiif-annotator",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "A local IIIF manifest annotator — run via npx to annotate IIIF images in your browser",
   "keywords": [
     "iiif",
@@ -23,7 +23,6 @@
   },
   "files": [
     ".next/",
-    "public/",
     "server.js",
     "bin/",
     "next.config.ts"

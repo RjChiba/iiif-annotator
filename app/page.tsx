@@ -1,11 +1,14 @@
 'use client';
 
-import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { ChangeEvent, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { parseManifest } from '@/lib/iiif';
 import { AnnotationData, ManifestState, ProjectMeta } from '@/lib/types';
 import ImageAnnotator from '@/components/ImageAnnotator';
 import { buildAnnotationPage, buildManifestWithAnnotations, downloadJson } from '@/lib/export';
 import { parseNdlOcr, NdlOcrJson } from '@/lib/ndl-ocr';
+import { loadUserSettings } from '@/lib/settings';
 import { ChevronLeft, ChevronRight, Layers, VectorSquare, View } from 'lucide-react';
 
 const preview = (text: string) => (text.length > 24 ? `${text.slice(0, 24)}...` : text || '（未入力）');
@@ -25,7 +28,9 @@ const loadImageDimensions = async (url: string): Promise<{ width: number; height
     image.src = url;
   });
 
-export default function Home() {
+function HomeContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [projects, setProjects] = useState<ProjectMeta[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,6 +44,7 @@ export default function Home() {
   const [defaultLanguage, setDefaultLanguage] = useState('ja');
   const [projectBusy, setProjectBusy] = useState(false);
   const [showCanvasList, setShowCanvasList] = useState(true);
+  const [safeDeleteEnabled, setSafeDeleteEnabled] = useState(true);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isBboxDragging = useRef(false);
   const currentAnnotationsRef = useRef<AnnotationData[]>([]);
@@ -78,7 +84,10 @@ export default function Home() {
   };
 
   useEffect(() => {
+    setSafeDeleteEnabled(loadUserSettings().safeDelete);
     void refreshProjects();
+    const projectId = searchParams.get('project');
+    if (projectId) void loadProject(projectId);
   }, []);
 
   const loadProject = async (projectId: string) => {
@@ -118,6 +127,7 @@ export default function Home() {
       setAnnotationsByCanvas(byCanvas);
       setCurrentCanvasIndex(0);
       setSelectedId(undefined);
+      router.replace(`?project=${projectId}`, { scroll: false });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'プロジェクト読み込みに失敗しました。');
     } finally {
@@ -289,10 +299,22 @@ export default function Home() {
 
   const onDeleteSelected = () => {
     if (!selected || !currentCanvas) return;
-    if (!window.confirm('このアノテーションを削除しますか？')) return;
+    if (safeDeleteEnabled && !window.confirm('このアノテーションを削除しますか？')) return;
     upsertAnnotation(currentCanvas.id, (current) => current.filter((item) => item.id !== selected.id));
     setSelectedId(undefined);
   };
+
+  useEffect(() => {
+    const listener = (event: globalThis.KeyboardEvent) => {
+      if (event.key === 'Delete' || event.key === 'Backspace') {
+        const tag = (event.target as HTMLElement).tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+        onDeleteSelected();
+      }
+    };
+    window.addEventListener('keydown', listener);
+    return () => window.removeEventListener('keydown', listener);
+  }, [selected, currentCanvas, safeDeleteEnabled]);
 
   useEffect(() => {
     if (!project || !currentCanvas || isBboxDragging.current) return;
@@ -388,8 +410,18 @@ export default function Home() {
       <main className="min-h-screen bg-gradient-to-b from-slate-100 to-slate-200/70 p-4 text-slate-900">
         <div className="mx-auto max-w-5xl space-y-4">
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h1 className="text-xl font-semibold tracking-tight">プロジェクト一覧</h1>
-            <p className="mt-1 text-sm text-slate-600">既存プロジェクトを開くか、新規プロジェクトを作成してください。</p>
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <h1 className="text-xl font-semibold tracking-tight">プロジェクト一覧</h1>
+                <p className="mt-1 text-sm text-slate-600">既存プロジェクトを開くか、新規プロジェクトを作成してください。</p>
+              </div>
+              <Link
+                href="/settings"
+                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm transition hover:border-slate-400"
+              >
+                設定
+              </Link>
+            </div>
 
             <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50/80 p-4">
               <h2 className="mb-2 text-sm font-semibold">新規プロジェクト作成</h2>
@@ -460,7 +492,7 @@ export default function Home() {
             <div className="flex flex-wrap items-center gap-2">
               <button
                 className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm transition hover:border-slate-400"
-                onClick={() => setProject(null)}
+                onClick={() => { setProject(null); router.replace('/', { scroll: false }); }}
               >
                 ← プロジェクト一覧
               </button>
@@ -665,5 +697,13 @@ export default function Home() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense>
+      <HomeContent />
+    </Suspense>
   );
 }

@@ -19,7 +19,7 @@ type DragMode = 'draw' | 'move' | 'resize-nw' | 'resize-ne' | 'resize-sw' | 'res
 const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n));
 const MIN_ZOOM = 0.2;
 const MAX_ZOOM = 2;
-const ZOOM_STEP = 0.1;
+const ZOOM_STEP = 0.02;
 
 export default function ImageAnnotator({ canvas, annotations, selectedId, drawMode, onSelect, onCreate, onUpdate, onBboxChangeEnd }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -55,7 +55,17 @@ export default function ImageAnnotator({ canvas, annotations, selectedId, drawMo
 
   const onWheel: React.WheelEventHandler<HTMLDivElement> = (event) => {
     event.preventDefault();
-    setZoom((prev) => clamp(prev + (event.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP), MIN_ZOOM, MAX_ZOOM));
+    const container = containerRef.current;
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
+    const px = event.clientX - rect.left;
+    const py = event.clientY - rect.top;
+    const newZoom = clamp(zoom + (event.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP), MIN_ZOOM, MAX_ZOOM);
+    setZoom(newZoom);
+    setOffset({
+      x: px - (px - offset.x) * newZoom / zoom,
+      y: py - (py - offset.y) * newZoom / zoom,
+    });
   };
 
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
