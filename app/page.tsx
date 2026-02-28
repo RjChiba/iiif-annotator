@@ -46,6 +46,9 @@ function HomeContent() {
   const [projectBusy, setProjectBusy] = useState(false);
   const [showCanvasList, setShowCanvasList] = useState(true);
   const [safeDeleteEnabled, setSafeDeleteEnabled] = useState(true);
+  const [keyREnabled, setKeyREnabled] = useState(true);
+  const [keyPEnabled, setKeyPEnabled] = useState(true);
+  const [keyXEnabled, setKeyXEnabled] = useState(true);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isBboxDragging = useRef(false);
   const currentAnnotationsRef = useRef<AnnotationData[]>([]);
@@ -94,7 +97,11 @@ function HomeContent() {
   };
 
   useEffect(() => {
-    setSafeDeleteEnabled(loadUserSettings().safeDelete);
+    const s = loadUserSettings();
+    setSafeDeleteEnabled(s.safeDelete);
+    setKeyREnabled(s.keyR);
+    setKeyPEnabled(s.keyP);
+    setKeyXEnabled(s.keyX);
     void refreshProjects();
     const projectId = searchParams.get('project');
     if (projectId) void loadProject(projectId);
@@ -325,21 +332,34 @@ function HomeContent() {
 
   useEffect(() => {
     const listener = (event: globalThis.KeyboardEvent) => {
+      const tag = (event.target as HTMLElement).tagName;
+      const inInput = tag === 'INPUT' || tag === 'TEXTAREA';
+
       if (event.key === 'Delete' || event.key === 'Backspace') {
-        const tag = (event.target as HTMLElement).tagName;
-        if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+        if (inInput) return;
         onDeleteSelected();
       }
       if (event.key === 'd' && (event.ctrlKey || event.metaKey)) {
-        const tag = (event.target as HTMLElement).tagName;
-        if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+        if (inInput) return;
         event.preventDefault();
         onDuplicateSelected();
+      }
+      if (event.key === 'r' && !event.ctrlKey && !event.metaKey && !event.altKey) {
+        if (inInput) return;
+        if (keyREnabled) setDrawMode(true);
+      }
+      if (event.key === 'p' && !event.ctrlKey && !event.metaKey && !event.altKey) {
+        if (inInput) return;
+        if (keyPEnabled) setDrawMode(false);
+      }
+      if (event.key === 'x' && !event.ctrlKey && !event.metaKey && !event.altKey) {
+        if (inInput) return;
+        if (keyXEnabled) onDeleteSelected();
       }
     };
     window.addEventListener('keydown', listener);
     return () => window.removeEventListener('keydown', listener);
-  }, [selected, currentCanvas, safeDeleteEnabled]);
+  }, [selected, currentCanvas, safeDeleteEnabled, keyREnabled, keyPEnabled, keyXEnabled]);
 
   useEffect(() => {
     if (!project || !currentCanvas || isBboxDragging.current) return;
