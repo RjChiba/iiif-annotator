@@ -315,12 +315,26 @@ function HomeContent() {
     setSelectedId(undefined);
   };
 
+  const onDuplicateSelected = () => {
+    if (!selected || !currentCanvas) return;
+    const newId = `${Date.now()}`;
+    const duplicate: AnnotationData = { ...selected, id: newId, createdAt: Date.now(), x: selected.x + 10, y: selected.y + 10 };
+    upsertAnnotation(currentCanvas.id, (current) => [...current, duplicate]);
+    setSelectedId(newId);
+  };
+
   useEffect(() => {
     const listener = (event: globalThis.KeyboardEvent) => {
       if (event.key === 'Delete' || event.key === 'Backspace') {
         const tag = (event.target as HTMLElement).tagName;
         if (tag === 'INPUT' || tag === 'TEXTAREA') return;
         onDeleteSelected();
+      }
+      if (event.key === 'd' && (event.ctrlKey || event.metaKey)) {
+        const tag = (event.target as HTMLElement).tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+        event.preventDefault();
+        onDuplicateSelected();
       }
     };
     window.addEventListener('keydown', listener);
