@@ -1,11 +1,17 @@
 export type UserSettings = {
   safeDelete: boolean;
+  keyR: boolean;
+  keyP: boolean;
+  keyX: boolean;
 };
 
 const SETTINGS_KEY = 'iiif-annotator:settings';
 
 const DEFAULT_SETTINGS: UserSettings = {
-  safeDelete: true
+  safeDelete: true,
+  keyR: true,
+  keyP: true,
+  keyX: true
 };
 
 export const loadUserSettings = (): UserSettings => {
@@ -16,7 +22,10 @@ export const loadUserSettings = (): UserSettings => {
   try {
     const parsed = JSON.parse(raw) as Partial<UserSettings>;
     return {
-      safeDelete: typeof parsed.safeDelete === 'boolean' ? parsed.safeDelete : DEFAULT_SETTINGS.safeDelete
+      safeDelete: typeof parsed.safeDelete === 'boolean' ? parsed.safeDelete : DEFAULT_SETTINGS.safeDelete,
+      keyR: typeof parsed.keyR === 'boolean' ? parsed.keyR : DEFAULT_SETTINGS.keyR,
+      keyP: typeof parsed.keyP === 'boolean' ? parsed.keyP : DEFAULT_SETTINGS.keyP,
+      keyX: typeof parsed.keyX === 'boolean' ? parsed.keyX : DEFAULT_SETTINGS.keyX
     };
   } catch {
     return { ...DEFAULT_SETTINGS };
