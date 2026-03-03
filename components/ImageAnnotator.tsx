@@ -37,7 +37,6 @@ export default function ImageAnnotator({ canvas, annotations, selectedId, drawMo
   }, [canvas]);
 
   useEffect(() => {
-    setZoom(1);
     setOffset({ x: 0, y: 0 });
     setPreview(null);
   }, [canvas?.id]);
