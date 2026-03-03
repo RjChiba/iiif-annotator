@@ -7,7 +7,7 @@ import { parseManifest } from '@/lib/iiif';
 import { AnnotationData, ManifestState, ProjectMeta } from '@/lib/types';
 import ImageAnnotator from '@/components/ImageAnnotator';
 import { buildAnnotationPage, buildManifestWithAnnotations, downloadJson } from '@/lib/export';
-import { parseNdlOcr, NdlOcrJson } from '@/lib/ndl-ocr';
+import { parseWithSchema, matchCanvasIndex, NDL_OCR_SCHEMA, OcrSchema } from '@/lib/ocr-schema';
 import { loadUserSettings } from '@/lib/settings';
 import { ChevronLeft, ChevronRight, Layers, VectorSquare, View } from 'lucide-react';
 
@@ -43,6 +43,8 @@ function HomeContent() {
   const [drawMode, setDrawMode] = useState(false);
   const [defaultLanguage, setDefaultLanguage] = useState('ja');
   const [sortMode, setSortMode] = useState<'position' | 'confidence-asc' | 'confidence-desc'>('position');
+  const [ocrSchemas, setOcrSchemas] = useState<OcrSchema[]>([]);
+  const [selectedSchemaId, setSelectedSchemaId] = useState('__ndl-ocr__');
   const [projectBusy, setProjectBusy] = useState(false);
   const [showCanvasList, setShowCanvasList] = useState(true);
   const [safeDeleteEnabled, setSafeDeleteEnabled] = useState(true);
@@ -103,6 +105,7 @@ function HomeContent() {
     setKeyPEnabled(s.keyP);
     setKeyXEnabled(s.keyX);
     void refreshProjects();
+    fetch('/api/ocr-schemas').then((r) => r.json()).then((schemas: OcrSchema[]) => setOcrSchemas(schemas)).catch(() => {});
     const projectId = searchParams.get('project');
     if (projectId) void loadProject(projectId);
   }, []);
@@ -383,7 +386,7 @@ function HomeContent() {
   //   return () => window.removeEventListener('keydown', listener);
   // }, [project]);
 
-  const onImportNdlOcr = async (event: ChangeEvent<HTMLInputElement>) => {
+  const onImportOcr = async (event: ChangeEvent<HTMLInputElement>) => {
     if (!event.target.files?.length || !project) return;
     const files = Array.from(event.target.files);
     event.target.value = '';
@@ -391,22 +394,17 @@ function HomeContent() {
     const accumulated: Record<string, AnnotationData[]> = {};
     const errors: string[] = [];
 
+    const schema: OcrSchema =
+      selectedSchemaId === '__ndl-ocr__'
+        ? NDL_OCR_SCHEMA
+        : (ocrSchemas.find((s) => s.id === selectedSchemaId) ?? NDL_OCR_SCHEMA);
+
     for (const file of files) {
       try {
-        const json = JSON.parse(await file.text()) as NdlOcrJson;
+        const json = JSON.parse(await file.text()) as unknown;
         const baseName = file.name.replace(/\.json$/i, '');
-
-        // Primary match: canvas label equals JSON basename (without extension)
-        let canvasIndex = canvases.findIndex((c) => c.label === baseName);
-
-        // Fallback: extract trailing 1-based numeric index from filename (e.g. _00003 → canvas index 2)
-        if (canvasIndex === -1) {
-          const match = baseName.match(/_(\d+)$/);
-          if (match) {
-            const num = parseInt(match[1], 10);
-            if (num >= 1 && num <= canvases.length) canvasIndex = num - 1;
-          }
-        }
+        const canvasLabels = canvases.map((c) => c.label);
+        const canvasIndex = matchCanvasIndex(baseName, json, canvasLabels, schema.canvasMatch);
 
         if (canvasIndex === -1) {
           errors.push(`${file.name}: 対応する Canvas が見つかりませんでした`);
@@ -414,7 +412,7 @@ function HomeContent() {
         }
 
         const canvas = canvases[canvasIndex];
-        const imported = parseNdlOcr(json, canvas.id, defaultLanguage, {
+        const imported = parseWithSchema(json, schema, canvas.id, defaultLanguage, {
           width: canvas.width,
           height: canvas.height,
         });
@@ -427,7 +425,6 @@ function HomeContent() {
 
     if (Object.keys(accumulated).length > 0) {
       setAnnotationsByCanvas((prev) => ({ ...prev, ...accumulated }));
-      // Save all updated canvases to the server
       for (const [canvasId, items] of Object.entries(accumulated)) {
         const idx = canvases.findIndex((c) => c.id === canvasId);
         if (idx !== -1) void saveCanvasAnnotations(idx, canvasId, items);
@@ -547,9 +544,20 @@ function HomeContent() {
               >
                 Manifestを書き出し
               </button>
+              <select
+                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm transition hover:border-slate-400 outline-none focus:border-blue-400"
+                value={selectedSchemaId}
+                onChange={(e) => setSelectedSchemaId(e.target.value)}
+                aria-label="OCR スキーマ選択"
+              >
+                <option value="__ndl-ocr__">{NDL_OCR_SCHEMA.name}</option>
+                {ocrSchemas.map((s) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
               <label className="cursor-pointer rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm transition hover:border-slate-400">
-                NDL OCR インポート
-                <input type="file" accept="application/json,.json" multiple className="hidden" onChange={onImportNdlOcr} />
+                OCR JSON インポート
+                <input type="file" accept="application/json,.json" multiple className="hidden" onChange={onImportOcr} />
               </label>
             </div>
           </div>
