@@ -530,17 +530,17 @@ function HomeContent() {
       <div className="mx-auto flex max-w-[1700px] flex-col gap-4 p-4">
         <header className="rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-sm backdrop-blur">
           <div className="flex flex-wrap items-start justify-between gap-3">
+            <button
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm transition hover:border-slate-400"
+              onClick={() => { setProject(null); router.replace('/', { scroll: false }); }}
+            >
+              ← プロジェクト一覧
+            </button>
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Project</p>
               <h1 className="text-xl font-semibold tracking-tight">{project.meta.name}</h1>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <button
-                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm transition hover:border-slate-400"
-                onClick={() => { setProject(null); router.replace('/', { scroll: false }); }}
-              >
-                ← プロジェクト一覧
-              </button>
               <button
                 className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm transition hover:border-slate-400"
                 onClick={exportAll}
