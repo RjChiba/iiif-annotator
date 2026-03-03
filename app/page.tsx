@@ -325,7 +325,7 @@ function HomeContent() {
   const onDuplicateSelected = () => {
     if (!selected || !currentCanvas) return;
     const newId = `${Date.now()}`;
-    const duplicate: AnnotationData = { ...selected, id: newId, createdAt: Date.now(), x: selected.x + 10, y: selected.y + 10 };
+    const duplicate: AnnotationData = { ...selected, id: newId, createdAt: Date.now(), x: selected.x + 10, y: selected.y + 10, extras: {} };
     upsertAnnotation(currentCanvas.id, (current) => [...current, duplicate]);
     setSelectedId(newId);
   };
