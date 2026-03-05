@@ -357,6 +357,10 @@ function HomeContent() {
         if (inInput) return;
         if (keyXEnabled) onDeleteSelected();
       }
+      if (event.key === 'h' && !event.ctrlKey && !event.metaKey && !event.altKey) {
+        if (inInput) return;
+        setShowBbox((v) => !v);
+      }
     };
     window.addEventListener('keydown', listener);
     return () => window.removeEventListener('keydown', listener);
