@@ -8,6 +8,7 @@ type Props = {
   annotations: AnnotationData[];
   selectedId?: string;
   drawMode: boolean;
+  showBbox?: boolean;
   onSelect: (id?: string) => void;
   onCreate: (anno: Omit<AnnotationData, 'id' | 'createdAt'>) => void;
   onUpdate: (id: string, updates: Partial<AnnotationData>) => void;
@@ -21,7 +22,7 @@ const MIN_ZOOM = 0.2;
 const MAX_ZOOM = 2;
 const ZOOM_STEP = 0.02;
 
-export default function ImageAnnotator({ canvas, annotations, selectedId, drawMode, onSelect, onCreate, onUpdate, onBboxChangeEnd }: Props) {
+export default function ImageAnnotator({ canvas, annotations, selectedId, drawMode, showBbox = true, onSelect, onCreate, onUpdate, onBboxChangeEnd }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const [imageSize, setImageSize] = useState({ w: 1, h: 1 });
@@ -236,7 +237,7 @@ export default function ImageAnnotator({ canvas, annotations, selectedId, drawMo
               }}
             />
             <div className="absolute left-0 top-0" style={{ width: imageSize.w, height: imageSize.h }}>
-              {annotations.map((anno) => (
+              {showBbox && annotations.map((anno) => (
                 <button
                   key={anno.id}
                   className={`absolute border-2 text-left ${selectedId === anno.id ? 'border-blue-500 bg-blue-500/20' : 'border-amber-500 bg-amber-300/20'}`}
