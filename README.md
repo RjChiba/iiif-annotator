@@ -3,6 +3,8 @@
 IIIF Presentation API v3 Manifest に対してテキスト文字起こしアノテーションを作成・編集する Web アプリです。
 `npx` でローカル起動し、ブラウザ上で操作できます。
 
+<img src="capture.gif" width="600">
+
 ## 使い方（npx）
 
 Node.js 18 以上が必要です。

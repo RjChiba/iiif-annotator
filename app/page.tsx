@@ -9,7 +9,7 @@ import ImageAnnotator from '@/components/ImageAnnotator';
 import { buildAnnotationPage, buildManifestWithAnnotations, downloadJson } from '@/lib/export';
 import { parseNdlOcr, NdlOcrJson } from '@/lib/ndl-ocr';
 import { loadUserSettings } from '@/lib/settings';
-import { ChevronLeft, ChevronRight, Layers, VectorSquare, View } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Eye, EyeOff, Layers, VectorSquare, View } from 'lucide-react';
 
 const preview = (text: string) => (text.length > 24 ? `${text.slice(0, 24)}...` : text || '（未入力）');
 
@@ -45,6 +45,7 @@ function HomeContent() {
   const [sortMode, setSortMode] = useState<'position' | 'confidence-asc' | 'confidence-desc'>('position');
   const [projectBusy, setProjectBusy] = useState(false);
   const [showCanvasList, setShowCanvasList] = useState(true);
+  const [showBbox, setShowBbox] = useState(true);
   const [safeDeleteEnabled, setSafeDeleteEnabled] = useState(true);
   const [keyREnabled, setKeyREnabled] = useState(true);
   const [keyPEnabled, setKeyPEnabled] = useState(true);
@@ -356,6 +357,10 @@ function HomeContent() {
         if (inInput) return;
         if (keyXEnabled) onDeleteSelected();
       }
+      if (event.key === 'h' && !event.ctrlKey && !event.metaKey && !event.altKey) {
+        if (inInput) return;
+        setShowBbox((v) => !v);
+      }
     };
     window.addEventListener('keydown', listener);
     return () => window.removeEventListener('keydown', listener);
@@ -631,6 +636,18 @@ function HomeContent() {
                     </span>
                   </div>
                 </div>
+                <div className="group relative">
+                  <button
+                    className={`${iconButtonClass} ${!showBbox ? 'border-slate-300 bg-slate-100 text-slate-400' : ''}`}
+                    onClick={() => setShowBbox((v) => !v)}
+                    aria-label={showBbox ? 'BBox を隠す' : 'BBox を表示'}
+                  >
+                    {showBbox ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                  </button>
+                  <span className="pointer-events-none absolute -bottom-7 left-1/2 -translate-x-1/2 rounded bg-slate-900 px-2 py-1 text-[11px] text-white opacity-0 transition group-hover:opacity-100">
+                    {showBbox ? 'BBox を隠す' : 'BBox を表示'}
+                  </span>
+                </div>
               </div>
               <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700">
                 {`${currentCanvasIndex + 1} / ${project.manifest.canvases.length}`}
@@ -663,6 +680,7 @@ function HomeContent() {
                   annotations={currentAnnotations}
                   selectedId={selectedId}
                   drawMode={drawMode}
+                  showBbox={showBbox}
                   onSelect={setSelectedId}
                   onCreate={onCreateAnnotation}
                   onUpdate={onUpdateAnnotation}
