@@ -297,7 +297,7 @@ function HomeContent() {
   };
 
   const onCreateAnnotation = (annotation: Omit<AnnotationData, 'id' | 'createdAt'>) => {
-    const id = `${Date.now()}`;
+    const id = `urn:uuid:${crypto.randomUUID()}`;
     const next: AnnotationData = { ...annotation, id, createdAt: Date.now(), language: defaultLanguage };
     upsertAnnotation(annotation.canvasId, (current) => [...current, next]);
     setSelectedId(id);
@@ -325,7 +325,7 @@ function HomeContent() {
 
   const onDuplicateSelected = () => {
     if (!selected || !currentCanvas) return;
-    const newId = `${Date.now()}`;
+    const newId = `urn:uuid:${crypto.randomUUID()}`;
     const duplicate: AnnotationData = { ...selected, id: newId, createdAt: Date.now(), x: selected.x + 10, y: selected.y + 10, extras: {} };
     upsertAnnotation(currentCanvas.id, (current) => [...current, duplicate]);
     setSelectedId(newId);

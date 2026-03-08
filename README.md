@@ -108,6 +108,69 @@ npx iiif-annotator --port=3001 --data=/path/to/data --open
       [filename]         # アップロード・変換された画像ファイル
 ```
 
+## REST API
+
+ローカルサーバー (`http://localhost:3000`) が提供する JSON API です。MCP サーバーや外部ツールからの操作に利用できます。
+
+### プロジェクト
+
+| メソッド | パス | 説明 |
+|---|---|---|
+| `GET` | `/api/projects` | プロジェクト一覧を取得 |
+| `POST` | `/api/projects` | プロジェクトを新規作成 |
+| `GET` | `/api/projects/:id` | プロジェクト詳細（manifest・アノテーション込み）を取得 |
+| `PUT` | `/api/projects/:id` | プロジェクトの manifest・名前を更新 |
+| `DELETE` | `/api/projects/:id` | プロジェクトを削除 |
+
+### アノテーション（Canvas 一括保存）
+
+| メソッド | パス | 説明 |
+|---|---|---|
+| `PUT` | `/api/projects/:id/annotations` | Canvas 全体の AnnotationPage を一括保存（UI の自動保存が使用） |
+
+**リクエストボディ:**
+```json
+{ "canvasIndex": 0, "annotationPage": { ... } }
+```
+
+### アノテーション（個別 CRUD）
+
+`:id` はプロジェクト UUID（`urn:uuid:` プレフィックスなし）、`:idx` は Canvas のゼロ始まりインデックス、`:aid` はアノテーション ID（`urn:uuid:...`、URL エンコード）。
+
+| メソッド | パス | 説明 | レスポンス |
+|---|---|---|---|
+| `GET` | `/api/projects/:id/canvases/:idx/annotations` | アノテーション一覧を取得 | `{ items: AnnotationItem[] }` |
+| `POST` | `/api/projects/:id/canvases/:idx/annotations` | アノテーションを新規作成 | `AnnotationItem`（201） |
+| `GET` | `/api/projects/:id/canvases/:idx/annotations/:aid` | アノテーションを 1 件取得 | `AnnotationItem` |
+| `PUT` | `/api/projects/:id/canvases/:idx/annotations/:aid` | アノテーションを部分更新 | `AnnotationItem` |
+| `DELETE` | `/api/projects/:id/canvases/:idx/annotations/:aid` | アノテーションを削除 | `{ ok: true }` |
+
+**`AnnotationItem` の構造:**
+```json
+{
+  "id": "urn:uuid:xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+  "type": "Annotation",
+  "motivation": "supplementing",
+  "body": {
+    "type": "TextualBody",
+    "value": "テキスト",
+    "format": "text/plain",
+    "language": "ja"
+  },
+  "target": "https://example.com/canvas/1#xywh=100,200,300,400"
+}
+```
+
+**POST / PUT リクエストボディ例:**
+```json
+{
+  "body": { "type": "TextualBody", "value": "テキスト", "format": "text/plain", "language": "ja" },
+  "target": "https://example.com/canvas/1#xywh=100,200,300,400"
+}
+```
+
+アノテーション ID は `urn:uuid:` URN 形式で自動採番されます。URL に含める際は `encodeURIComponent` でエンコードしてください。
+
 ## 注意事項
 
 - 画像ファイルアップロードで生成した manifest に含まれる画像 URI はローカルサーバーのパスを使用するため、エクスポートした manifest は別環境では画像を参照できません。
