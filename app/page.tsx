@@ -465,12 +465,26 @@ function HomeContent() {
                 <h1 className="text-xl font-semibold tracking-tight">プロジェクト一覧</h1>
                 <p className="mt-1 text-sm text-slate-600">既存プロジェクトを開くか、新規プロジェクトを作成してください。</p>
               </div>
-              <Link
-                href="/settings"
-                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm transition hover:border-slate-400"
-              >
-                設定
-              </Link>
+              <div className="flex items-center gap-2">
+                <a
+                  href="https://www.npmjs.com/package/iiif-annotator"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm transition hover:border-slate-400"
+                  title="npm package"
+                >
+                  <svg viewBox="0 0 18 7" width="28" height="11" aria-hidden="true" fill="currentColor">
+                    <path d="M0 0h18v6H9V7H5V6H0zm1 5h2V2h1v3h1V1H1zm5-4v5h2V5h2V1zm2 1h1v2H8zm3-1v4h2V2h1v3h1V2h1v3h1V1z" />
+                  </svg>
+                  npm
+                </a>
+                <Link
+                  href="/settings"
+                  className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm transition hover:border-slate-400"
+                >
+                  設定
+                </Link>
+              </div>
             </div>
 
             <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50/80 p-4">
