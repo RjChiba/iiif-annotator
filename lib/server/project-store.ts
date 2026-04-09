@@ -124,3 +124,82 @@ export const deleteProject = async (projectId: string) => {
 };
 
 export const uploadDir = (projectId: string) => path.join(publicUploadsRoot, projectId);
+
+// ─── Per-annotation CRUD ──────────────────────────────────────────────────────
+
+export type AnnotationItem = {
+  id: string;
+  type: 'Annotation';
+  motivation: 'supplementing';
+  body: { type: 'TextualBody'; value: string; format: string; language?: string };
+  target: string;
+  _extras?: Record<string, unknown>;
+};
+
+const readAnnotationPage = async (
+  projectId: string,
+  canvasIndex: number
+): Promise<{ id: string; items: AnnotationItem[] } | null> => {
+  const p = path.join(annotationsDir(projectId), `${canvasIndex}.json`);
+  try {
+    return JSON.parse(await fs.readFile(p, 'utf-8')) as { id: string; items: AnnotationItem[] };
+  } catch {
+    return null;
+  }
+};
+
+export const listAnnotationItems = async (
+  projectId: string,
+  canvasIndex: number
+): Promise<AnnotationItem[]> => {
+  const page = await readAnnotationPage(projectId, canvasIndex);
+  return page?.items ?? [];
+};
+
+export const createAnnotationItem = async (
+  projectId: string,
+  canvasIndex: number,
+  data: Omit<AnnotationItem, 'id'>
+): Promise<AnnotationItem> => {
+  const page = await readAnnotationPage(projectId, canvasIndex);
+  const item: AnnotationItem = { id: `urn:uuid:${randomUUID()}`, ...data };
+  const items = page ? [...page.items, item] : [item];
+  const pageId = page?.id ?? `urn:uuid:${randomUUID()}`;
+  await writeCanvasAnnotations(projectId, canvasIndex, {
+    '@context': 'http://iiif.io/api/presentation/3/context.json',
+    id: pageId,
+    type: 'AnnotationPage',
+    items
+  });
+  return item;
+};
+
+export const updateAnnotationItem = async (
+  projectId: string,
+  canvasIndex: number,
+  annotationId: string,
+  patch: Partial<Omit<AnnotationItem, 'id'>>
+): Promise<AnnotationItem | null> => {
+  const page = await readAnnotationPage(projectId, canvasIndex);
+  if (!page) return null;
+  const idx = page.items.findIndex((i) => i.id === annotationId);
+  if (idx === -1) return null;
+  const updated: AnnotationItem = { ...page.items[idx], ...patch, id: annotationId };
+  const items = [...page.items];
+  items[idx] = updated;
+  await writeCanvasAnnotations(projectId, canvasIndex, { ...page, items });
+  return updated;
+};
+
+export const deleteAnnotationItem = async (
+  projectId: string,
+  canvasIndex: number,
+  annotationId: string
+): Promise<boolean> => {
+  const page = await readAnnotationPage(projectId, canvasIndex);
+  if (!page) return false;
+  const filtered = page.items.filter((i) => i.id !== annotationId);
+  if (filtered.length === page.items.length) return false;
+  await writeCanvasAnnotations(projectId, canvasIndex, { ...page, items: filtered });
+  return true;
+};

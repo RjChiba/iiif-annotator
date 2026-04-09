@@ -54,7 +54,7 @@ export const buildAnnotationPage = (annotations: AnnotationData[]) => ({
   id: `urn:uuid:${uuidv4()}`,
   type: 'AnnotationPage',
   items: annotations.map((a) => ({
-    id: `urn:uuid:${uuidv4()}`,
+    id: a.id.startsWith('urn:') ? a.id : `urn:uuid:${uuidv4()}`,
     type: 'Annotation',
     motivation: 'supplementing',
     body: {

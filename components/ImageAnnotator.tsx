@@ -203,7 +203,19 @@ export default function ImageAnnotator({ canvas, annotations, selectedId, drawMo
           max={MAX_ZOOM}
           step={ZOOM_STEP}
           value={zoom}
-          onChange={(event) => setZoom(Number(event.target.value))}
+          onChange={(event) => {
+            const newZoom = Number(event.target.value);
+            const selected = selectedId ? annotations.find((a) => a.id === selectedId) : undefined;
+            if (selected) {
+              const px = (selected.x + selected.w / 2) * zoom + offset.x;
+              const py = (selected.y + selected.h / 2) * zoom + offset.y;
+              setOffset({
+                x: px - (px - offset.x) * newZoom / zoom,
+                y: py - (py - offset.y) * newZoom / zoom,
+              });
+            }
+            setZoom(newZoom);
+          }}
           aria-label="ズーム調整"
           className="w-40"
         />
