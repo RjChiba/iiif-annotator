@@ -40,6 +40,7 @@ function HomeContent() {
   const [annotationsByCanvas, setAnnotationsByCanvas] = useState<Record<string, AnnotationData[]>>({});
   const [currentCanvasIndex, setCurrentCanvasIndex] = useState(0);
   const [selectedId, setSelectedId] = useState<string | undefined>();
+  const [focusSelectionVersion, setFocusSelectionVersion] = useState(0);
   const [drawMode, setDrawMode] = useState(false);
   const [defaultLanguage, setDefaultLanguage] = useState('ja');
   const [sortMode, setSortMode] = useState<'position' | 'confidence-asc' | 'confidence-desc'>('position');
@@ -693,6 +694,7 @@ function HomeContent() {
                   canvas={currentCanvas}
                   annotations={currentAnnotations}
                   selectedId={selectedId}
+                  focusSelectionVersion={focusSelectionVersion}
                   drawMode={drawMode}
                   showBbox={showBbox}
                   onSelect={setSelectedId}
@@ -731,7 +733,10 @@ function HomeContent() {
                           ? 'border-blue-300 bg-blue-50'
                           : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
                       }`}
-                      onClick={() => setSelectedId(anno.id)}
+                      onClick={() => {
+                        setSelectedId(anno.id);
+                        setFocusSelectionVersion((value) => value + 1);
+                      }}
                     >
                       <div className="flex items-center justify-between gap-1">
                         <span className="font-medium">#{index + 1}</span>
