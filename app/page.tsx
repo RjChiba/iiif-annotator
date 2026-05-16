@@ -9,7 +9,7 @@ import ImageAnnotator from '@/components/ImageAnnotator';
 import { buildAnnotationPage, buildManifestWithAnnotations, downloadJson } from '@/lib/export';
 import { parseWithSchema, matchCanvasIndex, NDL_OCR_SCHEMA, OcrSchema } from '@/lib/ocr-schema';
 import { loadUserSettings } from '@/lib/settings';
-import { ChevronLeft, ChevronRight, Layers, VectorSquare, View } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Eye, EyeOff, Layers, VectorSquare, View } from 'lucide-react';
 
 const preview = (text: string) => (text.length > 24 ? `${text.slice(0, 24)}...` : text || '（未入力）');
 
@@ -47,6 +47,7 @@ function HomeContent() {
   const [selectedSchemaId, setSelectedSchemaId] = useState('__ndl-ocr__');
   const [projectBusy, setProjectBusy] = useState(false);
   const [showCanvasList, setShowCanvasList] = useState(true);
+  const [showBbox, setShowBbox] = useState(true);
   const [safeDeleteEnabled, setSafeDeleteEnabled] = useState(true);
   const [keyREnabled, setKeyREnabled] = useState(true);
   const [keyPEnabled, setKeyPEnabled] = useState(true);
@@ -328,7 +329,7 @@ function HomeContent() {
   const onDuplicateSelected = () => {
     if (!selected || !currentCanvas) return;
     const newId = `${Date.now()}`;
-    const duplicate: AnnotationData = { ...selected, id: newId, createdAt: Date.now(), x: selected.x + 10, y: selected.y + 10 };
+    const duplicate: AnnotationData = { ...selected, id: newId, createdAt: Date.now(), x: selected.x + 10, y: selected.y + 10, extras: {} };
     upsertAnnotation(currentCanvas.id, (current) => [...current, duplicate]);
     setSelectedId(newId);
   };
@@ -358,6 +359,10 @@ function HomeContent() {
       if (event.key === 'x' && !event.ctrlKey && !event.metaKey && !event.altKey) {
         if (inInput) return;
         if (keyXEnabled) onDeleteSelected();
+      }
+      if (event.key === 'h' && !event.ctrlKey && !event.metaKey && !event.altKey) {
+        if (inInput) return;
+        setShowBbox((v) => !v);
       }
     };
     window.addEventListener('keydown', listener);
@@ -527,17 +532,17 @@ function HomeContent() {
       <div className="mx-auto flex max-w-[1700px] flex-col gap-4 p-4">
         <header className="rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-sm backdrop-blur">
           <div className="flex flex-wrap items-start justify-between gap-3">
+            <button
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm transition hover:border-slate-400"
+              onClick={() => { setProject(null); router.replace('/', { scroll: false }); }}
+            >
+              ← プロジェクト一覧
+            </button>
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Project</p>
               <h1 className="text-xl font-semibold tracking-tight">{project.meta.name}</h1>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <button
-                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm transition hover:border-slate-400"
-                onClick={() => { setProject(null); router.replace('/', { scroll: false }); }}
-              >
-                ← プロジェクト一覧
-              </button>
               <button
                 className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm transition hover:border-slate-400"
                 onClick={exportAll}
@@ -639,6 +644,18 @@ function HomeContent() {
                     </span>
                   </div>
                 </div>
+                <div className="group relative">
+                  <button
+                    className={`${iconButtonClass} ${!showBbox ? 'border-slate-300 bg-slate-100 text-slate-400' : ''}`}
+                    onClick={() => setShowBbox((v) => !v)}
+                    aria-label={showBbox ? 'BBox を隠す' : 'BBox を表示'}
+                  >
+                    {showBbox ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                  </button>
+                  <span className="pointer-events-none absolute -bottom-7 left-1/2 -translate-x-1/2 rounded bg-slate-900 px-2 py-1 text-[11px] text-white opacity-0 transition group-hover:opacity-100">
+                    {showBbox ? 'BBox を隠す' : 'BBox を表示'}
+                  </span>
+                </div>
               </div>
               <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700">
                 {`${currentCanvasIndex + 1} / ${project.manifest.canvases.length}`}
@@ -671,6 +688,7 @@ function HomeContent() {
                   annotations={currentAnnotations}
                   selectedId={selectedId}
                   drawMode={drawMode}
+                  showBbox={showBbox}
                   onSelect={setSelectedId}
                   onCreate={onCreateAnnotation}
                   onUpdate={onUpdateAnnotation}
