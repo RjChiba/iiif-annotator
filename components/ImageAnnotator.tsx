@@ -7,6 +7,7 @@ type Props = {
   canvas?: CanvasInfo;
   annotations: AnnotationData[];
   selectedId?: string;
+  focusSelectionVersion?: number;
   drawMode: boolean;
   showBbox?: boolean;
   onSelect: (id?: string) => void;
@@ -22,12 +23,67 @@ const MIN_ZOOM = 0.2;
 const MAX_ZOOM = 2;
 const ZOOM_STEP = 0.02;
 
-export default function ImageAnnotator({ canvas, annotations, selectedId, drawMode, showBbox = true, onSelect, onCreate, onUpdate, onBboxChangeEnd }: Props) {
+type Point = { x: number; y: number };
+
+const toPoint = (value: unknown): Point | null => {
+  if (Array.isArray(value) && value.length >= 2) {
+    const [x, y] = value;
+    return typeof x === 'number' && Number.isFinite(x) && typeof y === 'number' && Number.isFinite(y) ? { x, y } : null;
+  }
+  if (value && typeof value === 'object') {
+    const x = 'x' in value ? (value.x as unknown) : undefined;
+    const y = 'y' in value ? (value.y as unknown) : undefined;
+    return typeof x === 'number' && Number.isFinite(x) && typeof y === 'number' && Number.isFinite(y) ? { x, y } : null;
+  }
+  return null;
+};
+
+const getPolygonPoints = (annotation: AnnotationData): Point[] | null => {
+  const polygon = annotation.extras?.polygon ?? annotation.extras?.points ?? annotation.extras?.vertices;
+  if (!Array.isArray(polygon)) return null;
+  const points = polygon.map(toPoint).filter((point): point is Point => point !== null);
+  return points.length >= 3 ? points : null;
+};
+
+const getPolygonCentroid = (points: Point[]): Point => {
+  let twiceArea = 0;
+  let centroidX = 0;
+  let centroidY = 0;
+
+  for (let i = 0; i < points.length; i += 1) {
+    const current = points[i];
+    const next = points[(i + 1) % points.length];
+    const cross = current.x * next.y - next.x * current.y;
+    twiceArea += cross;
+    centroidX += (current.x + next.x) * cross;
+    centroidY += (current.y + next.y) * cross;
+  }
+
+  if (Math.abs(twiceArea) < Number.EPSILON) {
+    const sum = points.reduce((acc, point) => ({ x: acc.x + point.x, y: acc.y + point.y }), { x: 0, y: 0 });
+    return { x: sum.x / points.length, y: sum.y / points.length };
+  }
+
+  return {
+    x: centroidX / (3 * twiceArea),
+    y: centroidY / (3 * twiceArea),
+  };
+};
+
+const getAnnotationCenter = (annotation: AnnotationData): Point => {
+  const polygon = getPolygonPoints(annotation);
+  if (polygon) return getPolygonCentroid(polygon);
+  return { x: annotation.x + annotation.w / 2, y: annotation.y + annotation.h / 2 };
+};
+
+export default function ImageAnnotator({ canvas, annotations, selectedId, focusSelectionVersion = 0, drawMode, showBbox = true, onSelect, onCreate, onUpdate, onBboxChangeEnd }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
+  const panAnimationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [imageSize, setImageSize] = useState({ w: 1, h: 1 });
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [shouldAnimateViewport, setShouldAnimateViewport] = useState(false);
   const [drag, setDrag] = useState<{ mode: DragMode; startX: number; startY: number; targetId?: string; base?: AnnotationData } | null>(null);
   const [preview, setPreview] = useState<AnnotationData | null>(null);
 
@@ -40,7 +96,30 @@ export default function ImageAnnotator({ canvas, annotations, selectedId, drawMo
   useEffect(() => {
     setOffset({ x: 0, y: 0 });
     setPreview(null);
+    setShouldAnimateViewport(false);
   }, [canvas?.id]);
+
+  useEffect(() => {
+    if (!focusSelectionVersion || !selectedId) return;
+    const container = containerRef.current;
+    const selected = annotations.find((annotation) => annotation.id === selectedId);
+    if (!container || !selected) return;
+    if (panAnimationTimerRef.current) clearTimeout(panAnimationTimerRef.current);
+    setShouldAnimateViewport(true);
+    const center = getAnnotationCenter(selected);
+    setOffset({
+      x: container.clientWidth / 2 - center.x * zoom,
+      y: container.clientHeight / 2 - center.y * zoom,
+    });
+    panAnimationTimerRef.current = setTimeout(() => {
+      setShouldAnimateViewport(false);
+      panAnimationTimerRef.current = null;
+    }, 160);
+  }, [annotations, focusSelectionVersion, imageSize.h, imageSize.w, selectedId]);
+
+  useEffect(() => () => {
+    if (panAnimationTimerRef.current) clearTimeout(panAnimationTimerRef.current);
+  }, []);
 
   const toImageCoords = (clientX: number, clientY: number) => {
     const container = containerRef.current;
@@ -55,6 +134,7 @@ export default function ImageAnnotator({ canvas, annotations, selectedId, drawMo
 
   const onWheel: React.WheelEventHandler<HTMLDivElement> = (event) => {
     event.preventDefault();
+    setShouldAnimateViewport(false);
     const container = containerRef.current;
     if (!container) return;
     const rect = container.getBoundingClientRect();
@@ -70,6 +150,7 @@ export default function ImageAnnotator({ canvas, annotations, selectedId, drawMo
 
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     if (!canvas || !imageUrl) return;
+    setShouldAnimateViewport(false);
     const point = toImageCoords(event.clientX, event.clientY);
     if (drawMode) {
       setDrag({ mode: 'draw', startX: point.x, startY: point.y });
@@ -203,7 +284,20 @@ export default function ImageAnnotator({ canvas, annotations, selectedId, drawMo
           max={MAX_ZOOM}
           step={ZOOM_STEP}
           value={zoom}
-          onChange={(event) => setZoom(Number(event.target.value))}
+          onChange={(event) => {
+            const newZoom = Number(event.target.value);
+            const selected = selectedId ? annotations.find((a) => a.id === selectedId) : undefined;
+            if (selected) {
+              const center = getAnnotationCenter(selected);
+              const px = center.x * zoom + offset.x;
+              const py = center.y * zoom + offset.y;
+              setOffset({
+                x: px - (px - offset.x) * newZoom / zoom,
+                y: py - (py - offset.y) * newZoom / zoom,
+              });
+            }
+            setZoom(newZoom);
+          }}
           aria-label="ズーム調整"
           className="w-40"
         />
@@ -222,7 +316,9 @@ export default function ImageAnnotator({ canvas, annotations, selectedId, drawMo
         {!imageUrl && <p className="p-4 text-sm text-red-600">Canvas の画像が見つかりません。</p>}
         {imageUrl && (
           <div
-            className="absolute left-0 top-0 origin-top-left"
+            className={`absolute left-0 top-0 origin-top-left motion-reduce:transition-none ${
+              shouldAnimateViewport ? 'transition-transform duration-150 ease-out' : ''
+            }`}
             style={{ transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})` }}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
