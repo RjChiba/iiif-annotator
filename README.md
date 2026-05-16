@@ -83,12 +83,34 @@ npx iiif-annotator --port=3001 --data=/path/to/data --open
 
 - **セーフデリート** — ON のとき削除操作（X キー・Delete キー・削除ボタン）で確認ダイアログを表示
 - キーボードショートカット（R / P / X）の個別有効／無効切り替え
+- **OCR スキーマ管理** — カスタム OCR スキーマの作成・編集・削除（BBox 形式・Canvas マッチング方法・JSON Schema を設定）
 
-### NDL OCR 読み込み
+### OCR JSON インポート
 
-- 国立国会図書館（NDL）の NDLOCR-Lite で出力される JSON からアノテーションを一括インポート
-- 複数の JSON ファイルをまとめてアップロードし、Canvas ラベルまたはファイル名末尾の連番で自動マッチング
+- 任意の OCR ツールが出力する JSON からアノテーションを一括インポート
+- ツールバーのスキーマ選択ドロップダウンでインポート形式を切り替え
+- 複数の JSON ファイルをまとめてアップロードし、Canvas に自動マッチング
 - 信頼度スコアをアノテーションに保存し、一覧表示・ソートに利用
+- **NDL OCR** 形式は組み込みスキーマとして標準対応（NDLOCR-Lite 出力に対応）
+- カスタムスキーマを設定画面で自由に追加・編集・削除
+
+**対応 BBox 形式:**
+
+| 形式 | 説明 |
+|---|---|
+| `quad` | 4頂点配列 `[[x,y],[x,y],[x,y],[x,y]]` |
+| `xywh-array` | 配列 `[x, y, w, h]` |
+| `xywh` | 個別フィールド（x / y / w / h） |
+| `ltrb` | 個別フィールド（left / top / right / bottom） |
+
+**Canvas マッチング方法:**
+
+| 方法 | 説明 |
+|---|---|
+| 自動 | ファイル名ラベル一致 → 末尾番号の順で試行 |
+| ファイル名ラベル | Canvas ラベルと JSON ファイル名（拡張子除く）を完全一致 |
+| ファイル名末尾番号 | `_NNNNN` の連番で Canvas インデックスに対応（0始まり／1始まりを選択可） |
+| JSON 内フィールド | JSON 内の指定パスの値を Canvas ラベルと照合 |
 
 ### エクスポート
 
@@ -110,6 +132,8 @@ npx iiif-annotator --port=3001 --data=/path/to/data --open
   uploads/
     [project-uuid]/
       [filename]         # アップロード・変換された画像ファイル
+  ocr-schemas/
+    [schema-uuid].json   # カスタム OCR スキーマ定義
 ```
 
 ## REST API
@@ -125,6 +149,15 @@ npx iiif-annotator --port=3001 --data=/path/to/data --open
 | `GET` | `/api/projects/:id` | プロジェクト詳細（manifest・アノテーション込み）を取得 |
 | `PUT` | `/api/projects/:id` | プロジェクトの manifest・名前を更新 |
 | `DELETE` | `/api/projects/:id` | プロジェクトを削除 |
+
+### OCR スキーマ
+
+| メソッド | パス | 説明 |
+|---|---|---|
+| `GET` | `/api/ocr-schemas` | カスタムスキーマ一覧を取得 |
+| `POST` | `/api/ocr-schemas` | カスタムスキーマを新規作成 |
+| `PUT` | `/api/ocr-schemas/:id` | カスタムスキーマを更新 |
+| `DELETE` | `/api/ocr-schemas/:id` | カスタムスキーマを削除 |
 
 ### アノテーション（Canvas 一括保存）
 
